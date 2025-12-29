@@ -1,0 +1,62 @@
+[package]
+name = "yconv"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+arrow = "56"
+clap = { version = "4", features = ["derive"] }
+duckdb = { version = "1.2", features = ["bundled", "appender-arrow"] }
+futures = "0.3"
+lancedb = { git = "https://github.com/wkalt/lancedb.git", branch = "wkalt/lance-update-nomerge" }
+mcap = "0.24"
+object_store = { version = "0.11", features = ["aws"] }
+parquet = { version = "56", features = ["zstd", "object_store"] }
+prost = "0.13"
+prost-reflect = "0.15"
+prost-types = "0.13"
+rustyline = "15"
+thiserror = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+url = "2"
+vortex = "0.56"
+vortex-file = "0.56"
+vortex-io = "0.56"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+debug = true
+
+[patch.crates-io]
+lance = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-core = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-datafusion = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-datagen = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-file = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-io = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-index = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-table = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-linalg = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-testing = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-encoding = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-arrow = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-namespace = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-namespace-impls = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+
+[patch.'https://github.com/lance-format/lance.git']
+lance = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-core = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-datafusion = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-datagen = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-file = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-io = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-index = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-table = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-linalg = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-testing = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-encoding = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-arrow = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-namespace = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }
+lance-namespace-impls = { git = "https://github.com/wkalt/lance.git", branch = "task/complex-fsl" }

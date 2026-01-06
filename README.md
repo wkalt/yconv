@@ -1,4 +1,4 @@
-# Youconv
+# yconv
 
 Universal format conversion tool for robotics data. Convert MCAP files to columnar formats for fast analytics.
 

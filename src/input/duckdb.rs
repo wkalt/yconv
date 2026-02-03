@@ -20,7 +20,7 @@ impl DuckDbInput {
     /// Open a DuckDB database for reading.
     pub fn new(path: &Path) -> Result<Self, InputError> {
         let conn = Connection::open(path)
-            .map_err(|e| InputError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
         Ok(Self { conn })
     }
 }
@@ -30,11 +30,11 @@ impl InputDatabase for DuckDbInput {
         let mut stmt = self
             .conn
             .prepare("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'")
-            .map_err(|e| InputError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
 
         let names: Vec<String> = stmt
             .query_map([], |row| row.get(0))
-            .map_err(|e| InputError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?
+            .map_err(|e| InputError::Io(std::io::Error::other(e)))?
             .filter_map(|r| r.ok())
             .collect();
 
@@ -51,11 +51,11 @@ impl InputDatabase for DuckDbInput {
         let mut stmt = self
             .conn
             .prepare(&query)
-            .map_err(|e| InputError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
 
         let arrow_result = stmt
             .query_arrow([])
-            .map_err(|e| InputError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
 
         // Collect all batches (DuckDB streams them)
         let batches: Vec<RecordBatch> = arrow_result.collect();

@@ -35,7 +35,11 @@ impl VortexInput {
             let entry = entry?;
             let file_path = entry.path();
 
-            if file_path.extension().map(|e| e == "vortex").unwrap_or(false) {
+            if file_path
+                .extension()
+                .map(|e| e == "vortex")
+                .unwrap_or(false)
+            {
                 // Extract table name from filename (without extension)
                 if let Some(stem) = file_path.file_stem() {
                     let table_name = stem.to_string_lossy().to_string();
@@ -88,9 +92,9 @@ impl VortexTableReader {
         let session = VortexSession::default().with_handle(handle);
 
         // Open the vortex file (pass path directly, not File)
-        let vortex_file = runtime.block_on(
-            session.open_options().open(path)
-        ).map_err(|e| InputError::Vortex(e.to_string()))?;
+        let vortex_file = runtime
+            .block_on(session.open_options().open(path))
+            .map_err(|e| InputError::Vortex(e.to_string()))?;
 
         // Use into_iter to read all arrays
         let iter = vortex_file

@@ -163,13 +163,13 @@ impl<R: Read> ProtobufReader<R> {
 
     /// Parse a schema from the MCAP file and cache it.
     fn parse_schema(&mut self, schema_id: u16) -> Result<(), ProtobufReaderError> {
-        let schema_info = self
-            .inner
-            .schema(schema_id)
-            .ok_or(ProtobufReaderError::UnknownSchema {
-                channel_id: 0,
-                schema_id,
-            })?;
+        let schema_info =
+            self.inner
+                .schema(schema_id)
+                .ok_or(ProtobufReaderError::UnknownSchema {
+                    channel_id: 0,
+                    schema_id,
+                })?;
 
         // Check encoding
         if schema_info.encoding != "protobuf" {

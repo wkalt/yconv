@@ -29,7 +29,11 @@ impl ParquetInput {
             let entry = entry?;
             let file_path = entry.path();
 
-            if file_path.extension().map(|e| e == "parquet").unwrap_or(false) {
+            if file_path
+                .extension()
+                .map(|e| e == "parquet")
+                .unwrap_or(false)
+            {
                 // Extract table name from filename (without extension)
                 if let Some(stem) = file_path.file_stem() {
                     let table_name = stem.to_string_lossy().to_string();

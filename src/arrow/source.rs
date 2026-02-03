@@ -221,12 +221,14 @@ impl ArrowRowSource {
             });
         }
 
-        let typed_array = array.as_any().downcast_ref::<A>().ok_or_else(|| {
-            SourceError::TypeMismatch {
-                expected: type_name.into(),
-                got: format!("{:?}", array.data_type()),
-            }
-        })?;
+        let typed_array =
+            array
+                .as_any()
+                .downcast_ref::<A>()
+                .ok_or_else(|| SourceError::TypeMismatch {
+                    expected: type_name.into(),
+                    got: format!("{:?}", array.data_type()),
+                })?;
 
         let value = extract(typed_array, row);
         self.advance_field();
@@ -471,9 +473,7 @@ impl RowSource for ArrowRowSource {
                 Ok(())
             }
             Some(_) => Err(SourceError::Navigation("exit_list but not in list".into())),
-            None => Err(SourceError::Navigation(
-                "exit_list with empty stack".into(),
-            )),
+            None => Err(SourceError::Navigation("exit_list with empty stack".into())),
         }
     }
 
@@ -566,11 +566,7 @@ mod tests {
         ]);
 
         let schema = Arc::new(Schema::new(vec![
-            Arc::new(Field::new(
-                "nested",
-                DataType::Struct(inner_fields),
-                false,
-            )),
+            Arc::new(Field::new("nested", DataType::Struct(inner_fields), false)),
             Arc::new(Field::new("value", DataType::Float64, false)),
         ]));
 
@@ -605,10 +601,12 @@ mod tests {
     #[test]
     fn test_list_of_primitives() {
         let list_array =
-            arrow::array::ListArray::from_iter_primitive::<arrow::datatypes::Int32Type, _, _>(vec![
-                Some(vec![Some(1), Some(2), Some(3)]),
-                Some(vec![Some(4), Some(5)]),
-            ]);
+            arrow::array::ListArray::from_iter_primitive::<arrow::datatypes::Int32Type, _, _>(
+                vec![
+                    Some(vec![Some(1), Some(2), Some(3)]),
+                    Some(vec![Some(4), Some(5)]),
+                ],
+            );
 
         let schema = Arc::new(Schema::new(vec![Arc::new(Field::new(
             "values",
@@ -661,10 +659,13 @@ mod tests {
         ]);
 
         // Build the list array with offsets [0, 2, 3] -> first row has 2 elements, second has 1
-        let offsets = arrow::buffer::OffsetBuffer::new(arrow::buffer::ScalarBuffer::from(vec![
-            0i32, 2, 3,
-        ]));
-        let list_field = Arc::new(Field::new("item", DataType::Struct(inner_fields.clone()), true));
+        let offsets =
+            arrow::buffer::OffsetBuffer::new(arrow::buffer::ScalarBuffer::from(vec![0i32, 2, 3]));
+        let list_field = Arc::new(Field::new(
+            "item",
+            DataType::Struct(inner_fields.clone()),
+            true,
+        ));
         let list_array = ListArray::new(list_field, offsets, Arc::new(struct_values), None);
 
         let schema = Arc::new(Schema::new(vec![Arc::new(Field::new(

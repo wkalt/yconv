@@ -47,9 +47,15 @@ pub enum CdrValue {
     Float64(f64),
     String(String),
     /// Time represented as (seconds, nanoseconds)
-    Time { sec: i32, nsec: u32 },
+    Time {
+        sec: i32,
+        nsec: u32,
+    },
     /// Duration represented as (seconds, nanoseconds)
-    Duration { sec: i32, nsec: u32 },
+    Duration {
+        sec: i32,
+        nsec: u32,
+    },
     /// Variable or fixed-length array
     Array(Vec<CdrValue>),
     /// Nested message as field name -> value
@@ -408,7 +414,7 @@ fn deserialize_field_type<R: CdrTypeRegistry>(
 
             let nested_def = registry
                 .get(&full_name)
-                .ok_or_else(|| CdrDeserializeError::UnresolvedType(full_name))?;
+                .ok_or(CdrDeserializeError::UnresolvedType(full_name))?;
 
             deserialize_message(cursor, nested_def, registry)
         }
@@ -592,7 +598,7 @@ mod tests {
         fn test_fixed_array_float64() {
             let def = MessageDefinition::parse("float64[3] values").unwrap();
             let mut data = vec![0x00, 0x01, 0x00, 0x00]; // CDR_LE header
-            // No length prefix for fixed arrays
+                                                         // No length prefix for fixed arrays
             data.extend_from_slice(&1.0f64.to_le_bytes());
             data.extend_from_slice(&2.0f64.to_le_bytes());
             data.extend_from_slice(&3.0f64.to_le_bytes());

@@ -20,9 +20,7 @@ use crate::lance::{
     CHANNELS_TABLE, CHANNEL_ID_COLUMN, LOG_TIME_COLUMN, PUBLISH_TIME_COLUMN, SCHEMAS_TABLE,
     SEQUENCE_COLUMN,
 };
-use crate::ros1::{
-    arrow_schema_to_msg, FromArrowError, Ros1SchemaInfo, Ros1Writer, WriteError,
-};
+use crate::ros1::{arrow_schema_to_msg, FromArrowError, Ros1SchemaInfo, Ros1Writer, WriteError};
 
 /// Errors that can occur during LanceDB to MCAP conversion.
 #[derive(Debug, Error)]
@@ -185,10 +183,8 @@ pub async fn convert_lance_to_mcap<W: Write>(
 
     // Create MCAP writer with NoSeek wrapper and disabled seeking for non-seekable streams
     let write_options = mcap::write::WriteOptions::default().disable_seeking(true);
-    let mut mcap_writer = mcap::write::Writer::with_options(
-        mcap::write::NoSeek::new(writer),
-        write_options,
-    )?;
+    let mut mcap_writer =
+        mcap::write::Writer::with_options(mcap::write::NoSeek::new(writer), write_options)?;
 
     // Set up topic streams and register schemas/channels
     let mut topic_streams: Vec<TopicStream> = Vec::new();
@@ -276,7 +272,9 @@ pub async fn convert_lance_to_mcap<W: Write>(
 
     // Track streaming state for each topic
     struct TopicBatchState {
-        stream: std::pin::Pin<Box<dyn futures::Stream<Item = Result<RecordBatch, lancedb::Error>> + Send>>,
+        stream: std::pin::Pin<
+            Box<dyn futures::Stream<Item = Result<RecordBatch, lancedb::Error>> + Send>,
+        >,
         current_batch: Option<Arc<RecordBatch>>,
         current_row: usize,
     }
@@ -300,7 +298,8 @@ pub async fn convert_lance_to_mcap<W: Write>(
         if let Some(batch_result) = state.stream.next().await {
             let batch = Arc::new(batch_result?);
             if batch.num_rows() > 0 {
-                let log_time = get_log_time(&batch, topic_streams[topic_idx].log_time_column_idx, 0);
+                let log_time =
+                    get_log_time(&batch, topic_streams[topic_idx].log_time_column_idx, 0);
                 heap.push(PendingMessage {
                     log_time,
                     topic_idx,
@@ -342,7 +341,10 @@ pub async fn convert_lance_to_mcap<W: Write>(
         )?;
 
         stream.sequence += 1;
-        *stats.messages_per_topic.get_mut(&stream.table_name).unwrap() += 1;
+        *stats
+            .messages_per_topic
+            .get_mut(&stream.table_name)
+            .unwrap() += 1;
         stats.total_messages += 1;
 
         // Advance to next row for this topic
@@ -350,7 +352,9 @@ pub async fn convert_lance_to_mcap<W: Write>(
         state.current_row += 1;
 
         // Check if we need the next row from current batch or load next batch
-        let batch_exhausted = state.current_batch.as_ref()
+        let batch_exhausted = state
+            .current_batch
+            .as_ref()
             .map(|b| state.current_row >= b.num_rows())
             .unwrap_or(true);
 
@@ -437,10 +441,7 @@ mod tests {
 
     #[test]
     fn test_table_name_to_topic() {
-        assert_eq!(
-            table_name_to_topic("camera_image_raw"),
-            "/camera/image/raw"
-        );
+        assert_eq!(table_name_to_topic("camera_image_raw"), "/camera/image/raw");
     }
 
     mod roundtrip {
@@ -577,10 +578,7 @@ mod tests {
             let original_mcap = create_test_mcap();
 
             // Step 2: Convert MCAP -> LanceDB
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
             let write_stats =
                 convert_mcap_to_lance(Cursor::new(&original_mcap), &db, ConvertOptions::default())
                     .await
@@ -634,10 +632,7 @@ mod tests {
             let original_mcap = create_multi_topic_mcap();
 
             // Step 2: Convert MCAP -> LanceDB
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
             let write_stats =
                 convert_mcap_to_lance(Cursor::new(&original_mcap), &db, ConvertOptions::default())
                     .await
@@ -700,10 +695,7 @@ mod tests {
                 .collect();
 
             // Convert MCAP -> LanceDB -> MCAP
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
             convert_mcap_to_lance(Cursor::new(&original_mcap), &db, ConvertOptions::default())
                 .await
                 .unwrap();

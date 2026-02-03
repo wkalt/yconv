@@ -61,7 +61,10 @@ fn is_empty_struct<R: TypeRegistry>(field_type: &FieldType, registry: &R) -> boo
                 None => name.clone(),
             };
             match registry.get(&full_name) {
-                Some(def) => def.fields.iter().all(|f| is_empty_struct(&f.field_type, registry)),
+                Some(def) => def
+                    .fields
+                    .iter()
+                    .all(|f| is_empty_struct(&f.field_type, registry)),
                 None => false, // Can't determine, assume not empty
             }
         }
@@ -273,7 +276,9 @@ where
                     let bytes = cursor.read_bytes(count * 8)?;
                     let values: Vec<f64> = bytes
                         .chunks_exact(8)
-                        .map(|c| f64::from_le_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]))
+                        .map(|c| {
+                            f64::from_le_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]])
+                        })
                         .collect();
                     sink.push_f64_array(&values).map_err(sink_err)?;
                 }
@@ -308,7 +313,9 @@ where
                     let bytes = cursor.read_bytes(*length * 8)?;
                     let values: Vec<f64> = bytes
                         .chunks_exact(8)
-                        .map(|c| f64::from_le_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]))
+                        .map(|c| {
+                            f64::from_le_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]])
+                        })
                         .collect();
                     sink.push_f64_array(&values).map_err(sink_err)?;
                 }
@@ -331,7 +338,7 @@ where
 
             let nested_def = registry
                 .get(&full_name)
-                .ok_or_else(|| TranscodeError::UnresolvedType(full_name))?;
+                .ok_or(TranscodeError::UnresolvedType(full_name))?;
 
             transcode_message(cursor, nested_def, registry, sink)
         }
@@ -554,7 +561,7 @@ fn compile_field<R: TypeRegistry>(
 
             let nested_def = registry
                 .get(&full_name)
-                .ok_or_else(|| CompileError::UnresolvedType(full_name))?;
+                .ok_or(CompileError::UnresolvedType(full_name))?;
 
             // Compile nested fields, filtering out empty structs
             let compiled_fields: Vec<CompiledField> = nested_def
@@ -701,9 +708,21 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 1);
 
-        let x = batch.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
-        let y = batch.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
-        let z = batch.column(2).as_any().downcast_ref::<Float64Array>().unwrap();
+        let x = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let y = batch
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let z = batch
+            .column(2)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(x.value(0), 1.5);
         assert_eq!(y.value(0), 2.5);
@@ -731,8 +750,16 @@ mod tests {
 
         let batch = sink.finish().unwrap();
 
-        let seq = batch.column(0).as_any().downcast_ref::<Int32Array>().unwrap();
-        let frame = batch.column(1).as_any().downcast_ref::<StringArray>().unwrap();
+        let seq = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<Int32Array>()
+            .unwrap();
+        let frame = batch
+            .column(1)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .unwrap();
 
         assert_eq!(seq.value(0), 42);
         assert_eq!(frame.value(0), "base_link");
@@ -771,8 +798,16 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 1);
 
-        let position = batch.column(0).as_any().downcast_ref::<StructArray>().unwrap();
-        let x = position.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
+        let position = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<StructArray>()
+            .unwrap();
+        let x = position
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(x.value(0), 1.0);
     }
@@ -797,7 +832,11 @@ mod tests {
         transcode(&data, &def, &registry, &mut sink).unwrap();
 
         let batch = sink.finish().unwrap();
-        let stamp = batch.column(0).as_any().downcast_ref::<arrow::array::TimestampNanosecondArray>().unwrap();
+        let stamp = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<arrow::array::TimestampNanosecondArray>()
+            .unwrap();
 
         // 1000 sec * 1e9 + 500 nsec
         assert_eq!(stamp.value(0), 1_000_000_000_500i64);
@@ -810,9 +849,9 @@ mod tests {
 
         // TransformStamped has: header, child_frame_id, transform
         // Simplified: just child_frame_id (string) and x, y (floats)
-        let transform_def = crate::ros1::MessageDefinition::parse(
-            "string child_frame_id\nfloat64 x\nfloat64 y"
-        ).unwrap();
+        let transform_def =
+            crate::ros1::MessageDefinition::parse("string child_frame_id\nfloat64 x\nfloat64 y")
+                .unwrap();
         registry.register("TransformStamped", transform_def);
 
         let def = crate::ros1::MessageDefinition::parse("TransformStamped[] transforms").unwrap();
@@ -855,14 +894,30 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 1);
 
-        let list = batch.column(0).as_any().downcast_ref::<arrow::array::ListArray>().unwrap();
+        let list = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<arrow::array::ListArray>()
+            .unwrap();
         assert_eq!(list.len(), 1);
 
-        let structs = list.values().as_any().downcast_ref::<StructArray>().unwrap();
+        let structs = list
+            .values()
+            .as_any()
+            .downcast_ref::<StructArray>()
+            .unwrap();
         assert_eq!(structs.len(), 2);
 
-        let child_frame = structs.column(0).as_any().downcast_ref::<StringArray>().unwrap();
-        let x = structs.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+        let child_frame = structs
+            .column(0)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .unwrap();
+        let x = structs
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(child_frame.value(0), "odom1");
         assert_eq!(child_frame.value(1), "odom2");
@@ -902,9 +957,21 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 1);
 
-        let x = batch.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
-        let y = batch.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
-        let z = batch.column(2).as_any().downcast_ref::<Float64Array>().unwrap();
+        let x = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let y = batch
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let z = batch
+            .column(2)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(x.value(0), 1.5);
         assert_eq!(y.value(0), 2.5);
@@ -947,8 +1014,16 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 1);
 
-        let position = batch.column(0).as_any().downcast_ref::<StructArray>().unwrap();
-        let x = position.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
+        let position = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<StructArray>()
+            .unwrap();
+        let x = position
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(x.value(0), 1.0);
     }
@@ -957,9 +1032,9 @@ mod tests {
     fn test_compiled_transcode_list_of_structs() {
         let mut registry = MessageRegistry::new();
 
-        let transform_def = crate::ros1::MessageDefinition::parse(
-            "string child_frame_id\nfloat64 x\nfloat64 y"
-        ).unwrap();
+        let transform_def =
+            crate::ros1::MessageDefinition::parse("string child_frame_id\nfloat64 x\nfloat64 y")
+                .unwrap();
         registry.register("TransformStamped", transform_def);
 
         let def = crate::ros1::MessageDefinition::parse("TransformStamped[] transforms").unwrap();
@@ -1001,14 +1076,30 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 1);
 
-        let list = batch.column(0).as_any().downcast_ref::<arrow::array::ListArray>().unwrap();
+        let list = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<arrow::array::ListArray>()
+            .unwrap();
         assert_eq!(list.len(), 1);
 
-        let structs = list.values().as_any().downcast_ref::<StructArray>().unwrap();
+        let structs = list
+            .values()
+            .as_any()
+            .downcast_ref::<StructArray>()
+            .unwrap();
         assert_eq!(structs.len(), 2);
 
-        let child_frame = structs.column(0).as_any().downcast_ref::<StringArray>().unwrap();
-        let x = structs.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+        let child_frame = structs
+            .column(0)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .unwrap();
+        let x = structs
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(child_frame.value(0), "odom1");
         assert_eq!(child_frame.value(1), "odom2");
@@ -1042,8 +1133,16 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 3);
 
-        let x = batch.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
-        let y = batch.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+        let x = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let y = batch
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(x.value(0), 0.0);
         assert_eq!(x.value(1), 1.0);

@@ -107,47 +107,69 @@ impl Ros1Writer {
         // Primitive type - determine from ros_type
         match info.ros_type.as_str() {
             "bool" => {
-                let value = source.read_bool().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_bool()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_bool(value);
             }
             "int8" | "byte" => {
-                let value = source.read_i8().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_i8()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_i8(value);
             }
             "int16" => {
-                let value = source.read_i16().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_i16()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_i16(value);
             }
             "int32" => {
-                let value = source.read_i32().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_i32()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_i32(value);
             }
             "int64" => {
-                let value = source.read_i64().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_i64()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_i64(value);
             }
             "uint8" | "char" => {
-                let value = source.read_u8().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_u8()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_u8(value);
             }
             "uint16" => {
-                let value = source.read_u16().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_u16()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_u16(value);
             }
             "uint32" => {
-                let value = source.read_u32().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_u32()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_u32(value);
             }
             "uint64" => {
-                let value = source.read_u64().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_u64()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_u64(value);
             }
             "float32" => {
-                let value = source.read_f32().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_f32()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_f32(value);
             }
             "float64" => {
-                let value = source.read_f64().map_err(|e| WriteError::Source(e.to_string()))?;
+                let value = source
+                    .read_f64()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_f64(value);
             }
             "string" => {
@@ -538,9 +560,9 @@ mod tests {
     #[test]
     fn test_write_variable_array() {
         let list_array =
-            arrow::array::ListArray::from_iter_primitive::<arrow::datatypes::UInt8Type, _, _>(vec![
-                Some(vec![Some(1u8), Some(2), Some(3)]),
-            ]);
+            arrow::array::ListArray::from_iter_primitive::<arrow::datatypes::UInt8Type, _, _>(
+                vec![Some(vec![Some(1u8), Some(2), Some(3)])],
+            );
 
         let schema = Arc::new(Schema::new(vec![Arc::new(Field::new(
             "data",

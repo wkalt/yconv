@@ -4,8 +4,8 @@ use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
-use std::sync::mpsc::{self, Sender, Receiver};
 use std::thread::{self, JoinHandle};
 
 use arrow::array::{Array, AsArray, RecordBatch};
@@ -96,9 +96,7 @@ impl VortexTopicWriter {
         let (sender, receiver) = mpsc::channel::<WriterMessage>();
 
         let writer_path = path.clone();
-        let writer_thread = thread::spawn(move || {
-            writer_thread_main(writer_path, receiver)
-        });
+        let writer_thread = thread::spawn(move || writer_thread_main(writer_path, receiver));
 
         Ok(Self {
             sender: Some(sender),
@@ -111,8 +109,8 @@ impl VortexTopicWriter {
 
 /// Main function for the writer thread.
 fn writer_thread_main(path: PathBuf, receiver: Receiver<WriterMessage>) -> Result<(), String> {
-    let file = File::create(&path)
-        .map_err(|e| format!("Failed to create {}: {}", path.display(), e))?;
+    let file =
+        File::create(&path).map_err(|e| format!("Failed to create {}: {}", path.display(), e))?;
     let buf_writer = BufWriter::new(file);
 
     let runtime = SingleThreadRuntime::default();
@@ -120,7 +118,8 @@ fn writer_thread_main(path: PathBuf, receiver: Receiver<WriterMessage>) -> Resul
     let session = VortexSession::default().with_handle(handle);
 
     // We need to receive the first array to get the dtype
-    let first_msg = receiver.recv()
+    let first_msg = receiver
+        .recv()
         .map_err(|_| "Channel closed before receiving first array")?;
 
     let first_array = match first_msg {
@@ -134,14 +133,16 @@ fn writer_thread_main(path: PathBuf, receiver: Receiver<WriterMessage>) -> Resul
         .writer(buf_writer, dtype);
 
     // Write the first array
-    writer.push(first_array)
+    writer
+        .push(first_array)
         .map_err(|e| format!("Failed to write array: {}", e))?;
 
     // Process remaining messages
     loop {
         match receiver.recv() {
             Ok(WriterMessage::Write(array)) => {
-                writer.push(array)
+                writer
+                    .push(array)
                     .map_err(|e| format!("Failed to write array: {}", e))?;
             }
             Ok(WriterMessage::Finish) => {
@@ -154,7 +155,8 @@ fn writer_thread_main(path: PathBuf, receiver: Receiver<WriterMessage>) -> Resul
         }
     }
 
-    writer.finish()
+    writer
+        .finish()
         .map_err(|e| format!("Failed to finish vortex file: {}", e))?;
 
     Ok(())
@@ -316,11 +318,14 @@ impl TopicWriter for VortexTopicWriter {
 
         // Send to writer thread
         if let Some(ref sender) = self.sender {
-            sender.send(WriterMessage::Write(vortex_array))
-                .map_err(|_| OutputError::Vortex(format!(
-                    "{}: Writer thread died unexpectedly",
-                    self.path.display()
-                )))?;
+            sender
+                .send(WriterMessage::Write(vortex_array))
+                .map_err(|_| {
+                    OutputError::Vortex(format!(
+                        "{}: Writer thread died unexpectedly",
+                        self.path.display()
+                    ))
+                })?;
         }
 
         Ok(())

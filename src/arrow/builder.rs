@@ -100,8 +100,7 @@ impl DynBuilder {
                 })
             }
             DataType::Struct(fields) => {
-                let field_names: Vec<String> =
-                    fields.iter().map(|f| f.name().clone()).collect();
+                let field_names: Vec<String> = fields.iter().map(|f| f.name().clone()).collect();
                 let field_builders: Vec<DynBuilder> = fields
                     .iter()
                     .map(|f| DynBuilder::new(f.data_type()))
@@ -278,7 +277,8 @@ impl DynBuilder {
                 use arrow::array::StructArray;
                 use arrow::buffer::NullBuffer;
                 let len = null_buffer.len();
-                let arrays: Vec<ArrayRef> = field_builders.iter_mut().map(|fb| fb.finish()).collect();
+                let arrays: Vec<ArrayRef> =
+                    field_builders.iter_mut().map(|fb| fb.finish()).collect();
                 let null_buf = NullBuffer::from(std::mem::take(null_buffer));
                 // Handle 0-field structs (e.g., empty ROS messages) by specifying length explicitly
                 if fields.is_empty() {
@@ -332,9 +332,7 @@ fn make_builder(data_type: &DataType) -> Result<Box<dyn ArrayBuilder>, BuilderEr
         DataType::Timestamp(TimeUnit::Nanosecond, _) => {
             Ok(Box::new(TimestampNanosecondBuilder::new()))
         }
-        DataType::Duration(TimeUnit::Nanosecond) => {
-            Ok(Box::new(DurationNanosecondBuilder::new()))
-        }
+        DataType::Duration(TimeUnit::Nanosecond) => Ok(Box::new(DurationNanosecondBuilder::new())),
         DataType::List(field) => {
             let inner = make_builder(field.data_type())?;
             Ok(Box::new(ListBuilder::new(inner)))
@@ -597,9 +595,7 @@ fn append_to_struct_field(
             }
         }
         (DataType::List(inner_field), Value::Array(values)) => {
-            if let Some(b) =
-                builder.field_builder::<ListBuilder<Box<dyn ArrayBuilder>>>(index)
-            {
+            if let Some(b) = builder.field_builder::<ListBuilder<Box<dyn ArrayBuilder>>>(index) {
                 let inner = b.values();
                 for v in values {
                     append_to_builder(inner, v, inner_field.data_type())?;
@@ -741,7 +737,10 @@ impl RecordBatchBuilder {
     /// Get the number of rows currently in the builder.
     pub fn len(&self) -> usize {
         // Use row_count for 0-column schemas (e.g., std_msgs/Empty)
-        self.builders.first().map(|b| b.len()).unwrap_or(self.row_count)
+        self.builders
+            .first()
+            .map(|b| b.len())
+            .unwrap_or(self.row_count)
     }
 
     /// Check if the builder is empty.
@@ -762,8 +761,13 @@ impl RecordBatchBuilder {
 
         // Handle 0-column schemas (e.g., std_msgs/Empty) by specifying row count explicitly
         if arrays.is_empty() {
-            let options = arrow::record_batch::RecordBatchOptions::new().with_row_count(Some(row_count));
-            Ok(RecordBatch::try_new_with_options(self.schema.clone(), arrays, &options)?)
+            let options =
+                arrow::record_batch::RecordBatchOptions::new().with_row_count(Some(row_count));
+            Ok(RecordBatch::try_new_with_options(
+                self.schema.clone(),
+                arrays,
+                &options,
+            )?)
         } else {
             Ok(RecordBatch::try_new(self.schema.clone(), arrays)?)
         }
@@ -810,7 +814,12 @@ mod tests {
     }
 
     fn make_message(fields: Vec<(&str, Value)>) -> Value {
-        Value::Message(fields.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
+        Value::Message(
+            fields
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect(),
+        )
     }
 
     mod primitive_building {
@@ -828,7 +837,11 @@ mod tests {
             let batch = values_to_record_batch(schema, &values).unwrap();
 
             assert_eq!(batch.num_rows(), 3);
-            let col = batch.column(0).as_any().downcast_ref::<BooleanArray>().unwrap();
+            let col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<BooleanArray>()
+                .unwrap();
             assert_eq!(col.value(0), true);
             assert_eq!(col.value(1), false);
             assert_eq!(col.value(2), true);
@@ -836,10 +849,7 @@ mod tests {
 
         #[test]
         fn test_integers() {
-            let schema = make_schema(vec![
-                ("i32", DataType::Int32),
-                ("u32", DataType::UInt32),
-            ]);
+            let schema = make_schema(vec![("i32", DataType::Int32), ("u32", DataType::UInt32)]);
 
             let values = vec![
                 make_message(vec![
@@ -854,21 +864,26 @@ mod tests {
 
             let batch = values_to_record_batch(schema, &values).unwrap();
 
-            let i32_col = batch.column(0).as_any().downcast_ref::<Int32Array>().unwrap();
+            let i32_col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<Int32Array>()
+                .unwrap();
             assert_eq!(i32_col.value(0), -100);
             assert_eq!(i32_col.value(1), 300);
 
-            let u32_col = batch.column(1).as_any().downcast_ref::<UInt32Array>().unwrap();
+            let u32_col = batch
+                .column(1)
+                .as_any()
+                .downcast_ref::<UInt32Array>()
+                .unwrap();
             assert_eq!(u32_col.value(0), 200);
             assert_eq!(u32_col.value(1), 400);
         }
 
         #[test]
         fn test_floats() {
-            let schema = make_schema(vec![
-                ("f32", DataType::Float32),
-                ("f64", DataType::Float64),
-            ]);
+            let schema = make_schema(vec![("f32", DataType::Float32), ("f64", DataType::Float64)]);
 
             let values = vec![make_message(vec![
                 ("f32", Value::Float32(1.5)),
@@ -877,10 +892,18 @@ mod tests {
 
             let batch = values_to_record_batch(schema, &values).unwrap();
 
-            let f32_col = batch.column(0).as_any().downcast_ref::<Float32Array>().unwrap();
+            let f32_col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<Float32Array>()
+                .unwrap();
             assert_eq!(f32_col.value(0), 1.5);
 
-            let f64_col = batch.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+            let f64_col = batch
+                .column(1)
+                .as_any()
+                .downcast_ref::<Float64Array>()
+                .unwrap();
             assert_eq!(f64_col.value(0), 2.5);
         }
 
@@ -895,7 +918,11 @@ mod tests {
 
             let batch = values_to_record_batch(schema, &values).unwrap();
 
-            let col = batch.column(0).as_any().downcast_ref::<StringArray>().unwrap();
+            let col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .unwrap();
             assert_eq!(col.value(0), "alice");
             assert_eq!(col.value(1), "bob");
         }
@@ -968,7 +995,11 @@ mod tests {
 
             let batch = values_to_record_batch(schema, &values).unwrap();
 
-            let col = batch.column(0).as_any().downcast_ref::<ListArray>().unwrap();
+            let col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<ListArray>()
+                .unwrap();
             assert_eq!(col.len(), 3);
 
             // First row: [1, 2, 3]
@@ -1049,7 +1080,11 @@ mod tests {
 
             let batch = values_to_record_batch(schema, &values).unwrap();
 
-            let col = batch.column(0).as_any().downcast_ref::<ListArray>().unwrap();
+            let col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<ListArray>()
+                .unwrap();
             let row0 = col.value(0);
             let row0 = row0.as_any().downcast_ref::<StringArray>().unwrap();
             assert_eq!(row0.value(0), "a");
@@ -1076,9 +1111,21 @@ mod tests {
 
             let batch = values_to_record_batch(schema, &values).unwrap();
 
-            let col = batch.column(0).as_any().downcast_ref::<StructArray>().unwrap();
-            let x_col = col.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
-            let y_col = col.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+            let col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<StructArray>()
+                .unwrap();
+            let x_col = col
+                .column(0)
+                .as_any()
+                .downcast_ref::<Float64Array>()
+                .unwrap();
+            let y_col = col
+                .column(1)
+                .as_any()
+                .downcast_ref::<Float64Array>()
+                .unwrap();
 
             assert_eq!(x_col.value(0), 1.5);
             assert_eq!(y_col.value(0), 2.5);
@@ -1126,8 +1173,16 @@ mod tests {
 
             let batch = values_to_record_batch(schema, &values).unwrap();
 
-            let pose_col = batch.column(0).as_any().downcast_ref::<StructArray>().unwrap();
-            let position_col = pose_col.column(0).as_any().downcast_ref::<StructArray>().unwrap();
+            let pose_col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<StructArray>()
+                .unwrap();
+            let position_col = pose_col
+                .column(0)
+                .as_any()
+                .downcast_ref::<StructArray>()
+                .unwrap();
             let x_col = position_col
                 .column(0)
                 .as_any()
@@ -1136,7 +1191,11 @@ mod tests {
 
             assert_eq!(x_col.value(0), 1.0);
 
-            let orientation_col = pose_col.column(1).as_any().downcast_ref::<StructArray>().unwrap();
+            let orientation_col = pose_col
+                .column(1)
+                .as_any()
+                .downcast_ref::<StructArray>()
+                .unwrap();
             let w_col = orientation_col
                 .column(3)
                 .as_any()
@@ -1176,7 +1235,11 @@ mod tests {
 
             let batch = values_to_record_batch(schema, &values).unwrap();
 
-            let col = batch.column(0).as_any().downcast_ref::<ListArray>().unwrap();
+            let col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<ListArray>()
+                .unwrap();
             let row0 = col.value(0);
             let struct_array = row0.as_any().downcast_ref::<StructArray>().unwrap();
 
@@ -1222,7 +1285,11 @@ mod tests {
             let batch2 = builder.finish().unwrap();
             assert_eq!(batch2.num_rows(), 1);
 
-            let col = batch2.column(0).as_any().downcast_ref::<Int32Array>().unwrap();
+            let col = batch2
+                .column(0)
+                .as_any()
+                .downcast_ref::<Int32Array>()
+                .unwrap();
             assert_eq!(col.value(0), 3);
         }
 
@@ -1265,7 +1332,13 @@ mod tests {
                 ]),
                 make_message(vec![
                     ("seq", Value::UInt32(2)),
-                    ("stamp", Value::Time { sec: 1001, nsec: 500 }),
+                    (
+                        "stamp",
+                        Value::Time {
+                            sec: 1001,
+                            nsec: 500,
+                        },
+                    ),
                     ("frame_id", Value::String("camera".to_string())),
                 ]),
             ];
@@ -1273,11 +1346,19 @@ mod tests {
             let batch = values_to_record_batch(schema, &values).unwrap();
             assert_eq!(batch.num_rows(), 2);
 
-            let seq = batch.column(0).as_any().downcast_ref::<UInt32Array>().unwrap();
+            let seq = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<UInt32Array>()
+                .unwrap();
             assert_eq!(seq.value(0), 1);
             assert_eq!(seq.value(1), 2);
 
-            let frame = batch.column(2).as_any().downcast_ref::<StringArray>().unwrap();
+            let frame = batch
+                .column(2)
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .unwrap();
             assert_eq!(frame.value(0), "base_link");
         }
 
@@ -1285,7 +1366,11 @@ mod tests {
         fn test_image_like_message() {
             let header_fields = Fields::from(vec![
                 Field::new("seq", DataType::UInt32, true),
-                Field::new("stamp", DataType::Timestamp(TimeUnit::Nanosecond, None), true),
+                Field::new(
+                    "stamp",
+                    DataType::Timestamp(TimeUnit::Nanosecond, None),
+                    true,
+                ),
                 Field::new("frame_id", DataType::Utf8, true),
             ]);
 
@@ -1302,13 +1387,7 @@ mod tests {
 
             let mut header = HashMap::new();
             header.insert("seq".to_string(), Value::UInt32(1));
-            header.insert(
-                "stamp".to_string(),
-                Value::Time {
-                    sec: 1000,
-                    nsec: 0,
-                },
-            );
+            header.insert("stamp".to_string(), Value::Time { sec: 1000, nsec: 0 });
             header.insert("frame_id".to_string(), Value::String("camera".to_string()));
 
             let values = vec![make_message(vec![
@@ -1325,10 +1404,18 @@ mod tests {
             let batch = values_to_record_batch(schema, &values).unwrap();
             assert_eq!(batch.num_rows(), 1);
 
-            let height = batch.column(1).as_any().downcast_ref::<UInt32Array>().unwrap();
+            let height = batch
+                .column(1)
+                .as_any()
+                .downcast_ref::<UInt32Array>()
+                .unwrap();
             assert_eq!(height.value(0), 480);
 
-            let encoding = batch.column(3).as_any().downcast_ref::<StringArray>().unwrap();
+            let encoding = batch
+                .column(3)
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .unwrap();
             assert_eq!(encoding.value(0), "rgb8");
         }
 

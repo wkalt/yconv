@@ -81,7 +81,9 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Convert between data formats
-    #[command(after_help = "Output format is inferred from -o extension, or specify --output-format with --stdout.")]
+    #[command(
+        after_help = "Output format is inferred from -o extension, or specify --output-format with --stdout."
+    )]
     Convert(ConvertArgs),
 
     /// Open an interactive SQL shell
@@ -143,13 +145,12 @@ fn is_cloud_uri(path: &str) -> bool {
 fn get_extension(path: &str) -> Option<&str> {
     // For URIs, parse the path component
     if is_cloud_uri(path) {
-        path.rsplit('/').next()
+        path.rsplit('/')
+            .next()
             .and_then(|filename| filename.rsplit('.').next())
             .filter(|ext| !ext.contains('/'))
     } else {
-        Path::new(path)
-            .extension()
-            .and_then(|e| e.to_str())
+        Path::new(path).extension().and_then(|e| e.to_str())
     }
 }
 
@@ -400,14 +401,12 @@ async fn run_convert(args: ConvertArgs) -> ExitCode {
         }
 
         // Parquet → other formats
-        (InputFormat::Parquet, OutputFormat::Mcap) => {
-            run_input_to_mcap(
-                yconv::input::InputFormat::Parquet,
-                args.input[0].clone(),
-                args.output,
-                args.stdout,
-            )
-        }
+        (InputFormat::Parquet, OutputFormat::Mcap) => run_input_to_mcap(
+            yconv::input::InputFormat::Parquet,
+            args.input[0].clone(),
+            args.output,
+            args.stdout,
+        ),
         (InputFormat::Parquet, OutputFormat::Lancedb) => {
             let output = args.output.unwrap();
             run_input_to_lance(
@@ -441,14 +440,12 @@ async fn run_convert(args: ConvertArgs) -> ExitCode {
         }
 
         // Vortex → other formats
-        (InputFormat::Vortex, OutputFormat::Mcap) => {
-            run_input_to_mcap(
-                yconv::input::InputFormat::Vortex,
-                args.input[0].clone(),
-                args.output,
-                args.stdout,
-            )
-        }
+        (InputFormat::Vortex, OutputFormat::Mcap) => run_input_to_mcap(
+            yconv::input::InputFormat::Vortex,
+            args.input[0].clone(),
+            args.output,
+            args.stdout,
+        ),
         (InputFormat::Vortex, OutputFormat::Lancedb) => {
             let output = args.output.unwrap();
             run_input_to_lance(
@@ -482,14 +479,12 @@ async fn run_convert(args: ConvertArgs) -> ExitCode {
         }
 
         // DuckDB → other formats
-        (InputFormat::DuckDb, OutputFormat::Mcap) => {
-            run_input_to_mcap(
-                yconv::input::InputFormat::DuckDb,
-                args.input[0].clone(),
-                args.output,
-                args.stdout,
-            )
-        }
+        (InputFormat::DuckDb, OutputFormat::Mcap) => run_input_to_mcap(
+            yconv::input::InputFormat::DuckDb,
+            args.input[0].clone(),
+            args.output,
+            args.stdout,
+        ),
         (InputFormat::DuckDb, OutputFormat::Lancedb) => {
             let output = args.output.unwrap();
             run_input_to_lance(
@@ -568,7 +563,7 @@ fn detect_mcap_encoding(path: &PathBuf) -> Result<String, Box<dyn std::error::Er
     // Read until we find a channel
     while let Some(_msg) = reader.next_message()? {
         // Check channels we've discovered
-        for channel in reader.channels().values() {
+        if let Some(channel) = reader.channels().values().next() {
             return Ok(channel.message_encoding.clone());
         }
     }
@@ -729,18 +724,16 @@ async fn run_to_output_format(
     output: String,
     format: OutputFmt,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
     use std::collections::{BTreeMap, HashMap};
     use std::sync::Arc;
-    use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
     use yconv::arrow::ArrowRowSink;
     use yconv::mcap::Ros1Reader;
     use yconv::ros1::CompiledTranscoder;
 
     // For now, Parquet/Vortex/DuckDB only support local paths
     if is_cloud_uri(&output) {
-        return Err(format!(
-            "Cloud storage output is only supported for Lance format. Use -o with a .lance path for S3 output."
-        ).into());
+        return Err("Cloud storage output is only supported for Lance format. Use -o with a .lance path for S3 output.".to_string().into());
     }
     let output_path = PathBuf::from(&output);
 
@@ -769,8 +762,8 @@ async fn run_to_output_format(
             output
         );
 
-        let file = File::open(input)
-            .map_err(|e| format!("Failed to open {}: {e}", input.display()))?;
+        let file =
+            File::open(input).map_err(|e| format!("Failed to open {}: {e}", input.display()))?;
 
         let mut reader = Ros1Reader::new(file);
 
@@ -829,10 +822,17 @@ async fn run_to_output_format(
                 let mut columns: Vec<arrow::array::ArrayRef> = batch.columns().to_vec();
                 columns.push(time_array);
                 let mut fields: Vec<Arc<Field>> = batch.schema().fields().iter().cloned().collect();
-                fields.push(Arc::new(Field::new("_log_time", DataType::Timestamp(TimeUnit::Nanosecond, None), false)));
+                fields.push(Arc::new(Field::new(
+                    "_log_time",
+                    DataType::Timestamp(TimeUnit::Nanosecond, None),
+                    false,
+                )));
                 let schema = Arc::new(Schema::new(fields));
                 let batch = arrow::array::RecordBatch::try_new(schema, columns)?;
-                writers.get_mut(&raw_msg.topic).unwrap().write_batch(batch)?;
+                writers
+                    .get_mut(&raw_msg.topic)
+                    .unwrap()
+                    .write_batch(batch)?;
                 *pending = 0;
             }
 
@@ -852,7 +852,11 @@ async fn run_to_output_format(
             let mut columns: Vec<arrow::array::ArrayRef> = batch.columns().to_vec();
             columns.push(time_array);
             let mut fields: Vec<Arc<Field>> = batch.schema().fields().iter().cloned().collect();
-            fields.push(Arc::new(Field::new("_log_time", DataType::Timestamp(TimeUnit::Nanosecond, None), false)));
+            fields.push(Arc::new(Field::new(
+                "_log_time",
+                DataType::Timestamp(TimeUnit::Nanosecond, None),
+                false,
+            )));
             let schema = Arc::new(Schema::new(fields));
             let batch = arrow::array::RecordBatch::try_new(schema, columns)?;
             writers.get_mut(topic).unwrap().write_batch(batch)?;
@@ -888,15 +892,13 @@ async fn run_lance_to_output(
     output: String,
     format: OutputFmt,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    use std::collections::BTreeMap;
     use futures::TryStreamExt;
     use lancedb::query::ExecutableQuery;
+    use std::collections::BTreeMap;
 
     // For now, Parquet/Vortex/DuckDB only support local paths
     if is_cloud_uri(&output) {
-        return Err(format!(
-            "Cloud storage output is only supported for Lance format. Use -o with a .lance path for S3 output."
-        ).into());
+        return Err("Cloud storage output is only supported for Lance format. Use -o with a .lance path for S3 output.".to_string().into());
     }
     let output_path = PathBuf::from(&output);
 
@@ -921,12 +923,8 @@ async fn run_lance_to_output(
         let table = db.open_table(table_name).execute().await?;
 
         // Query all data
-        let batches: Vec<arrow::array::RecordBatch> = table
-            .query()
-            .execute()
-            .await?
-            .try_collect()
-            .await?;
+        let batches: Vec<arrow::array::RecordBatch> =
+            table.query().execute().await?.try_collect().await?;
 
         if batches.is_empty() {
             continue;
@@ -973,8 +971,8 @@ fn run_input_to_mcap(
     output: Option<String>,
     use_stdout: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    use std::collections::BTreeMap;
     use arrow::array::ArrayRef;
+    use std::collections::BTreeMap;
     use yconv::arrow::ArrowRowSource;
     use yconv::input::open_input;
     use yconv::ros1::{arrow_schema_to_msg, Ros1SchemaInfo, Ros1Writer};
@@ -1009,7 +1007,8 @@ fn run_input_to_mcap(
             .map_err(|e| format!("Failed to create {}: {e}", output_path.display()))?;
         Box::new(BufWriter::new(file))
     };
-    let mut mcap_writer = mcap::write::Writer::with_options(mcap::write::NoSeek::new(writer), write_options)?;
+    let mut mcap_writer =
+        mcap::write::Writer::with_options(mcap::write::NoSeek::new(writer), write_options)?;
 
     let table_names = input_db.table_names()?;
     let mut total_messages = 0usize;
@@ -1023,7 +1022,8 @@ fn run_input_to_mcap(
         log_time_column_idx: Option<usize>,
         sequence: u32,
     }
-    let mut topic_infos: std::collections::HashMap<String, TopicInfo> = std::collections::HashMap::new();
+    let mut topic_infos: std::collections::HashMap<String, TopicInfo> =
+        std::collections::HashMap::new();
     let mut ros1_writer = Ros1Writer::new();
 
     for table_name in &table_names {
@@ -1058,30 +1058,31 @@ fn run_input_to_mcap(
         let schema_info = Ros1SchemaInfo::from_arrow_schema(&message_schema)?;
 
         // Convert table name to topic format
-        let topic_name = format!("/{}", table_name.strip_prefix('_').unwrap_or(table_name).replace('_', "/"));
+        let topic_name = format!(
+            "/{}",
+            table_name
+                .strip_prefix('_')
+                .unwrap_or(table_name)
+                .replace('_', "/")
+        );
 
         // Add schema to MCAP
-        let schema_id = mcap_writer.add_schema(
-            table_name,
-            "ros1msg",
-            msg_schema.as_bytes(),
-        )?;
+        let schema_id = mcap_writer.add_schema(table_name, "ros1msg", msg_schema.as_bytes())?;
 
         // Add channel to MCAP
-        let channel_id = mcap_writer.add_channel(
-            schema_id,
-            &topic_name,
-            "ros1msg",
-            &BTreeMap::new(),
-        )?;
+        let channel_id =
+            mcap_writer.add_channel(schema_id, &topic_name, "ros1msg", &BTreeMap::new())?;
 
-        topic_infos.insert(table_name.clone(), TopicInfo {
-            channel_id,
-            schema_info,
-            message_column_indices,
-            log_time_column_idx,
-            sequence: 0,
-        });
+        topic_infos.insert(
+            table_name.clone(),
+            TopicInfo {
+                channel_id,
+                schema_info,
+                message_column_indices,
+                log_time_column_idx,
+                sequence: 0,
+            },
+        );
 
         let mut topic_count = 0usize;
 
@@ -1100,9 +1101,8 @@ fn run_input_to_mcap(
                         .downcast_ref::<arrow::array::TimestampNanosecondArray>()
                     {
                         ts_array.value(row_idx) as u64
-                    } else if let Some(ts_array) = col
-                        .as_any()
-                        .downcast_ref::<arrow::array::UInt64Array>()
+                    } else if let Some(ts_array) =
+                        col.as_any().downcast_ref::<arrow::array::UInt64Array>()
                     {
                         ts_array.value(row_idx)
                     } else {
@@ -1179,9 +1179,9 @@ async fn run_input_to_lance(
     output: String,
     mode: CliWriteMode,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    use arrow::record_batch::RecordBatchIterator;
     use std::collections::BTreeMap;
     use std::sync::Arc;
-    use arrow::record_batch::RecordBatchIterator;
     use yconv::input::open_input;
 
     // Open input database
@@ -1227,10 +1227,7 @@ async fn run_input_to_lance(
         let table_exists = existing_tables.contains(table_name);
 
         // Convert Vec<RecordBatch> to RecordBatchIterator
-        let batch_iter = RecordBatchIterator::new(
-            batches.into_iter().map(Ok),
-            Arc::clone(&schema),
-        );
+        let batch_iter = RecordBatchIterator::new(batches.into_iter().map(Ok), Arc::clone(&schema));
 
         if table_exists {
             match write_mode {
@@ -1280,9 +1277,7 @@ fn run_input_to_output(
 
     // For now, Parquet/Vortex/DuckDB only support local paths
     if is_cloud_uri(&output) {
-        return Err(format!(
-            "Cloud storage output is only supported for Lance format. Use -o with a .lance path for S3 output."
-        ).into());
+        return Err("Cloud storage output is only supported for Lance format. Use -o with a .lance path for S3 output.".to_string().into());
     }
     let output_path = PathBuf::from(&output);
 
@@ -1347,7 +1342,7 @@ fn measure_per_topic_sizes(dir: &Path, extension: &str) -> io::Result<HashMap<St
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        if path.extension().map_or(false, |e| e == extension) {
+        if path.extension().is_some_and(|e| e == extension) {
             let name = path.file_stem().unwrap().to_string_lossy().to_string();
             sizes.insert(name, fs::metadata(&path)?.len());
         }
@@ -1361,7 +1356,7 @@ fn measure_lance_per_topic_sizes(dir: &Path) -> io::Result<HashMap<String, u64>>
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        if path.is_dir() && path.extension().map_or(false, |e| e == "lance") {
+        if path.is_dir() && path.extension().is_some_and(|e| e == "lance") {
             let name = path.file_stem().unwrap().to_string_lossy().to_string();
             sizes.insert(name, dir_size_recursive(&path)?);
         }
@@ -1419,8 +1414,7 @@ fn format_duration(d: std::time::Duration) -> String {
 fn sanitize_topic_name(topic: &str) -> String {
     topic
         .trim_start_matches('/')
-        .replace('/', "_")
-        .replace('-', "_")
+        .replace(['/', '-'], "_")
 }
 
 /// Result of a conversion with per-topic failure tracking
@@ -1436,9 +1430,9 @@ async fn convert_mcap_to_output_format_quiet(
     output: String,
     format: OutputFmt,
 ) -> Result<ConversionResult, Box<dyn std::error::Error + Send + Sync>> {
+    use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
     use std::collections::{BTreeMap, HashSet};
     use std::sync::Arc;
-    use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
     use yconv::arrow::ArrowRowSink;
     use yconv::mcap::Ros1Reader;
     use yconv::output::TopicWriter;
@@ -1531,7 +1525,10 @@ async fn convert_mcap_to_output_format_quiet(
                         OutputFmt::Vortex => "vortex",
                         OutputFmt::DuckDb => "duckdb",
                     };
-                    topic_paths.insert(topic.clone(), output_path.join(format!("{}.{}", sanitized, ext)));
+                    topic_paths.insert(
+                        topic.clone(),
+                        output_path.join(format!("{}.{}", sanitized, ext)),
+                    );
 
                     let writer = output_db.create_topic_writer(topic, full_schema.clone())?;
                     writers.insert(topic.clone(), writer);
@@ -1542,12 +1539,21 @@ async fn convert_mcap_to_output_format_quiet(
                     log_times.insert(topic.clone(), Vec::new());
                     pending_counts.insert(topic.clone(), 0);
                     Ok(())
-                })();
+                })(
+                );
 
                 if let Err(e) = init_result {
                     eprintln!("Warning: Failed to initialize topic '{}': {}", topic, e);
                     failed_topics.insert(topic.clone());
-                    cleanup_failed_topic(topic, &mut writers, &mut sinks, &mut transcoders, &mut log_times, &mut pending_counts, &topic_paths);
+                    cleanup_failed_topic(
+                        topic,
+                        &mut writers,
+                        &mut sinks,
+                        &mut transcoders,
+                        &mut log_times,
+                        &mut pending_counts,
+                        &topic_paths,
+                    );
                     continue;
                 }
             }
@@ -1567,13 +1573,19 @@ async fn convert_mcap_to_output_format_quiet(
                 if *count >= BATCH_SIZE {
                     let batch = sink.finish()?;
                     // Add _log_time column
-                    let time_array: arrow::array::ArrayRef = Arc::new(
-                        arrow::array::TimestampNanosecondArray::from(std::mem::take(topic_log_times)),
-                    );
+                    let time_array: arrow::array::ArrayRef =
+                        Arc::new(arrow::array::TimestampNanosecondArray::from(
+                            std::mem::take(topic_log_times),
+                        ));
                     let mut columns: Vec<arrow::array::ArrayRef> = batch.columns().to_vec();
                     columns.push(time_array);
-                    let mut fields: Vec<Arc<Field>> = batch.schema().fields().iter().cloned().collect();
-                    fields.push(Arc::new(Field::new("_log_time", DataType::Timestamp(TimeUnit::Nanosecond, None), false)));
+                    let mut fields: Vec<Arc<Field>> =
+                        batch.schema().fields().iter().cloned().collect();
+                    fields.push(Arc::new(Field::new(
+                        "_log_time",
+                        DataType::Timestamp(TimeUnit::Nanosecond, None),
+                        false,
+                    )));
                     let schema = Arc::new(Schema::new(fields));
                     let batch = arrow::array::RecordBatch::try_new(schema, columns)?;
                     writers.get_mut(topic).unwrap().write_batch(batch)?;
@@ -1581,12 +1593,21 @@ async fn convert_mcap_to_output_format_quiet(
                     *count = 0;
                 }
                 Ok(())
-            })();
+            })(
+            );
 
             if let Err(e) = transcode_result {
                 eprintln!("Warning: Failed to process topic '{}': {}", topic, e);
                 failed_topics.insert(topic.clone());
-                cleanup_failed_topic(topic, &mut writers, &mut sinks, &mut transcoders, &mut log_times, &mut pending_counts, &topic_paths);
+                cleanup_failed_topic(
+                    topic,
+                    &mut writers,
+                    &mut sinks,
+                    &mut transcoders,
+                    &mut log_times,
+                    &mut pending_counts,
+                    &topic_paths,
+                );
             }
         }
     }
@@ -1610,7 +1631,11 @@ async fn convert_mcap_to_output_format_quiet(
             let mut columns: Vec<arrow::array::ArrayRef> = batch.columns().to_vec();
             columns.push(time_array);
             let mut fields: Vec<Arc<Field>> = batch.schema().fields().iter().cloned().collect();
-            fields.push(Arc::new(Field::new("_log_time", DataType::Timestamp(TimeUnit::Nanosecond, None), false)));
+            fields.push(Arc::new(Field::new(
+                "_log_time",
+                DataType::Timestamp(TimeUnit::Nanosecond, None),
+                false,
+            )));
             let schema = Arc::new(Schema::new(fields));
             let batch = arrow::array::RecordBatch::try_new(schema, columns)?;
             writers.get_mut(&topic).unwrap().write_batch(batch)?;
@@ -1621,7 +1646,15 @@ async fn convert_mcap_to_output_format_quiet(
         if let Err(e) = flush_result {
             eprintln!("Warning: Failed to flush topic '{}': {}", topic, e);
             failed_topics.insert(topic.clone());
-            cleanup_failed_topic(&topic, &mut writers, &mut sinks, &mut transcoders, &mut log_times, &mut pending_counts, &topic_paths);
+            cleanup_failed_topic(
+                &topic,
+                &mut writers,
+                &mut sinks,
+                &mut transcoders,
+                &mut log_times,
+                &mut pending_counts,
+                &topic_paths,
+            );
         }
     }
 
@@ -1666,8 +1699,8 @@ async fn convert_mcap_to_lance_quiet(
     let mut total_messages: HashMap<String, usize> = HashMap::new();
 
     for input in &inputs {
-        let encoding = detect_mcap_encoding(input)
-            .map_err(|e| format!("Failed to detect encoding: {}", e))?;
+        let encoding =
+            detect_mcap_encoding(input).map_err(|e| format!("Failed to detect encoding: {}", e))?;
         let file = File::open(input)?;
 
         let stats = match encoding.as_str() {
@@ -1704,11 +1737,7 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
 
     // Determine output directory
     let output_dir = args.output.unwrap_or_else(|| {
-        let stem = args
-            .input
-            .file_stem()
-            .unwrap_or_default()
-            .to_string_lossy();
+        let stem = args.input.file_stem().unwrap_or_default().to_string_lossy();
         PathBuf::from(format!("{}_analysis", stem))
     });
 
@@ -1747,7 +1776,11 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
         }
     };
 
-    eprintln!("Analyzing: {} ({})", args.input.display(), format_size(mcap_size));
+    eprintln!(
+        "Analyzing: {} ({})",
+        args.input.display(),
+        format_size(mcap_size)
+    );
     eprintln!();
     eprintln!("Converting to Parquet, Vortex, and LanceDB in parallel...");
 
@@ -1760,17 +1793,23 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
     // Wrap each conversion to capture timing
     use std::time::{Duration, Instant};
 
-    async fn timed<T>(
-        fut: impl std::future::Future<Output = T>,
-    ) -> (T, Duration) {
+    async fn timed<T>(fut: impl std::future::Future<Output = T>) -> (T, Duration) {
         let start = Instant::now();
         let result = fut.await;
         (result, start.elapsed())
     }
 
     let ((parquet_result, parquet_time), (vortex_result, vortex_time), (lance_result, lance_time)) = tokio::join!(
-        timed(convert_mcap_to_output_format_quiet(inputs.clone(), parquet_output, OutputFmt::Parquet)),
-        timed(convert_mcap_to_output_format_quiet(inputs.clone(), vortex_output, OutputFmt::Vortex)),
+        timed(convert_mcap_to_output_format_quiet(
+            inputs.clone(),
+            parquet_output,
+            OutputFmt::Parquet
+        )),
+        timed(convert_mcap_to_output_format_quiet(
+            inputs.clone(),
+            vortex_output,
+            OutputFmt::Vortex
+        )),
         timed(convert_mcap_to_lance_quiet(inputs.clone(), lance_output)),
     );
 
@@ -1840,7 +1879,10 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
     }
 
     // Calculate totals (only from successful topics)
-    let total_messages: usize = parquet_conv.messages_per_topic.values().sum::<usize>()
+    let total_messages: usize = parquet_conv
+        .messages_per_topic
+        .values()
+        .sum::<usize>()
         .max(lance_conv.messages_per_topic.values().sum());
     let total_parquet: u64 = parquet_sizes.values().sum();
     let total_vortex: u64 = vortex_sizes.values().sum();
@@ -1877,37 +1919,47 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
         };
         let visible = format!("{:.2}x", ratio);
         let visible_len = visible.len();
-        (format!("\x1b[38;2;{};{};{}m{}\x1b[0m", r, g, b, visible), visible_len)
+        (
+            format!("\x1b[38;2;{};{};{}m{}\x1b[0m", r, g, b, visible),
+            visible_len,
+        )
     }
 
     // Calculate column widths
-    let topic_width = all_topics
-        .iter()
-        .map(|t| t.len())
-        .max()
-        .unwrap_or(5)
-        .max(5);
+    let topic_width = all_topics.iter().map(|t| t.len()).max().unwrap_or(5).max(5);
     let msg_width = 10;
     let size_width = 18; // Wider to accommodate "1.23 MB (1.23x)"
 
     // Header
     println!(
         "┌─{:─<tw$}─┬─{:─<mw$}─┬─{:─<sw$}─┬─{:─<sw$}─┬─{:─<sw$}─┐",
-        "", "", "", "", "",
+        "",
+        "",
+        "",
+        "",
+        "",
         tw = topic_width,
         mw = msg_width,
         sw = size_width
     );
     println!(
         "│ {:tw$} │ {:>mw$} │ {:>sw$} │ {:>sw$} │ {:>sw$} │",
-        "Topic", "Messages", "Parquet", "Vortex", "LanceDB",
+        "Topic",
+        "Messages",
+        "Parquet",
+        "Vortex",
+        "LanceDB",
         tw = topic_width,
         mw = msg_width,
         sw = size_width
     );
     println!(
         "├─{:─<tw$}─┼─{:─<mw$}─┼─{:─<sw$}─┼─{:─<sw$}─┼─{:─<sw$}─┤",
-        "", "", "", "", "",
+        "",
+        "",
+        "",
+        "",
+        "",
         tw = topic_width,
         mw = msg_width,
         sw = size_width
@@ -1915,7 +1967,9 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
 
     // Data rows
     for topic in &all_topics {
-        let msgs = parquet_conv.messages_per_topic.get(topic)
+        let msgs = parquet_conv
+            .messages_per_topic
+            .get(topic)
             .or_else(|| lance_conv.messages_per_topic.get(topic))
             .copied()
             .unwrap_or(0);
@@ -2026,7 +2080,11 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
 
     println!(
         "├─{:─<tw$}─┼─{:─<mw$}─┼─{:─<sw$}─┼─{:─<sw$}─┼─{:─<sw$}─┤",
-        "", "", "", "", "",
+        "",
+        "",
+        "",
+        "",
+        "",
         tw = topic_width,
         mw = msg_width,
         sw = size_width
@@ -2035,7 +2093,11 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
         "│ {:tw$} │ {:>mw$} │ {:>sw$} │ {:>vw$} │ {:>lw$} │",
         "TOTAL",
         total_messages,
-        if parquet_ok { format_size(total_parquet) } else { "FAILED".to_string() },
+        if parquet_ok {
+            format_size(total_parquet)
+        } else {
+            "FAILED".to_string()
+        },
         total_vx_str,
         total_lc_str,
         tw = topic_width,
@@ -2046,7 +2108,11 @@ async fn run_analyze(args: AnalyzeArgs) -> ExitCode {
     );
     println!(
         "└─{:─<tw$}─┴─{:─<mw$}─┴─{:─<sw$}─┴─{:─<sw$}─┴─{:─<sw$}─┘",
-        "", "", "", "", "",
+        "",
+        "",
+        "",
+        "",
+        "",
         tw = topic_width,
         mw = msg_width,
         sw = size_width

@@ -13,11 +13,13 @@ use thiserror::Error;
 
 use crate::arrow::{ArrowRowSink, BuilderError, RecordBatchBuilder, SinkError};
 use crate::cdr::{transcode as cdr_transcode, CdrTranscodeError};
-use crate::mcap::{CdrReader, CdrReaderError, ProtobufReader, ProtobufReaderError, Ros1Message, Ros1Reader, Ros1ReaderError};
+use crate::mcap::{
+    CdrReader, CdrReaderError, ProtobufReader, ProtobufReaderError, Ros1Message, Ros1Reader,
+    Ros1ReaderError,
+};
 use crate::protobuf::{transcode as protobuf_transcode, TranscodeError as ProtobufTranscodeError};
 use crate::ros1::{CompileError, CompiledTranscoder, TranscodeError};
 use crate::schema::{compare_schemas, EvolutionError, SchemaEvolution};
-
 
 /// Errors that can occur while writing to LanceDB.
 #[derive(Debug, Error)]
@@ -148,8 +150,7 @@ pub async fn connect_with_options(
 pub fn sanitize_table_name(topic: &str) -> String {
     topic
         .trim_start_matches('/')
-        .replace('/', "_")
-        .replace('-', "_")
+        .replace(['/', '-'], "_")
 }
 
 /// Statistics about a conversion operation.
@@ -292,9 +293,7 @@ impl TopicWriter {
                     }
 
                     // Use merged schema for writing
-                    let merged = evolution
-                        .merged_schema
-                        .unwrap_or(existing_schema);
+                    let merged = evolution.merged_schema.unwrap_or(existing_schema);
                     (table, merged)
                 }
             }
@@ -342,8 +341,9 @@ impl TopicWriter {
         // Apply type widening via column alterations
         for (field_name, new_type) in &evolution.widened_fields {
             table
-                .alter_columns(&[ColumnAlteration::new(field_name.clone())
-                    .cast_to(new_type.clone())])
+                .alter_columns(&[
+                    ColumnAlteration::new(field_name.clone()).cast_to(new_type.clone())
+                ])
                 .await?;
         }
 
@@ -379,9 +379,8 @@ impl TopicWriter {
         let message_batch = self.builder.finish()?;
 
         // Create log_time array
-        let log_time_array: arrow::array::ArrayRef = Arc::new(
-            arrow::array::UInt64Array::from(log_times)
-        );
+        let log_time_array: arrow::array::ArrayRef =
+            Arc::new(arrow::array::UInt64Array::from(log_times));
 
         // Combine metadata columns with message columns
         let mut columns: Vec<arrow::array::ArrayRef> = vec![log_time_array];
@@ -389,8 +388,7 @@ impl TopicWriter {
 
         // Use with_match_field_names(false) to allow metadata differences between
         // schema fields and array fields (Arrow builders don't preserve field metadata).
-        let options = arrow::record_batch::RecordBatchOptions::new()
-            .with_match_field_names(false);
+        let options = arrow::record_batch::RecordBatchOptions::new().with_match_field_names(false);
         let batch = RecordBatch::try_new_with_options(self.schema.clone(), columns, &options)?;
         self.write_batch(batch).await?;
         self.pending_count = 0;
@@ -400,11 +398,9 @@ impl TopicWriter {
 
     /// Write a RecordBatch to the table.
     async fn write_batch(&self, batch: RecordBatch) -> Result<(), WriterError> {
-        let batches: Box<dyn arrow::record_batch::RecordBatchReader + Send> =
-            Box::new(arrow::record_batch::RecordBatchIterator::new(
-                vec![Ok(batch)],
-                self.schema.clone(),
-            ));
+        let batches: Box<dyn arrow::record_batch::RecordBatchReader + Send> = Box::new(
+            arrow::record_batch::RecordBatchIterator::new(vec![Ok(batch)], self.schema.clone()),
+        );
         self.table.add(batches).execute().await?;
         Ok(())
     }
@@ -492,7 +488,7 @@ fn channels_table_schema() -> Schema {
         Field::new("topic", DataType::Utf8, false),
         Field::new("schema_id", DataType::UInt16, false),
         Field::new("message_encoding", DataType::Utf8, false),
-        Field::new("metadata", DataType::Utf8, true),  // JSON-encoded metadata
+        Field::new("metadata", DataType::Utf8, true), // JSON-encoded metadata
     ])
 }
 
@@ -563,20 +559,27 @@ async fn write_channels_table(
 
     let id_array: arrow::array::ArrayRef = Arc::new(arrow::array::UInt16Array::from(ids));
     let topic_array: arrow::array::ArrayRef = Arc::new(arrow::array::StringArray::from(topics));
-    let schema_id_array: arrow::array::ArrayRef = Arc::new(arrow::array::UInt16Array::from(schema_ids));
-    let encoding_array: arrow::array::ArrayRef = Arc::new(arrow::array::StringArray::from(encodings));
-    let metadata_array: arrow::array::ArrayRef = Arc::new(arrow::array::StringArray::from(metadatas));
+    let schema_id_array: arrow::array::ArrayRef =
+        Arc::new(arrow::array::UInt16Array::from(schema_ids));
+    let encoding_array: arrow::array::ArrayRef =
+        Arc::new(arrow::array::StringArray::from(encodings));
+    let metadata_array: arrow::array::ArrayRef =
+        Arc::new(arrow::array::StringArray::from(metadatas));
 
     let batch = RecordBatch::try_new(
         schema.clone(),
-        vec![id_array, topic_array, schema_id_array, encoding_array, metadata_array],
+        vec![
+            id_array,
+            topic_array,
+            schema_id_array,
+            encoding_array,
+            metadata_array,
+        ],
     )?;
 
-    let batches: Box<dyn arrow::record_batch::RecordBatchReader + Send> =
-        Box::new(arrow::record_batch::RecordBatchIterator::new(
-            vec![Ok(batch)],
-            schema,
-        ));
+    let batches: Box<dyn arrow::record_batch::RecordBatchReader + Send> = Box::new(
+        arrow::record_batch::RecordBatchIterator::new(vec![Ok(batch)], schema),
+    );
     table.add(batches).execute().await?;
 
     Ok(())
@@ -634,7 +637,8 @@ async fn write_schemas_table(
 
     let id_array: arrow::array::ArrayRef = Arc::new(arrow::array::UInt16Array::from(ids));
     let name_array: arrow::array::ArrayRef = Arc::new(arrow::array::StringArray::from(names));
-    let encoding_array: arrow::array::ArrayRef = Arc::new(arrow::array::StringArray::from(encodings));
+    let encoding_array: arrow::array::ArrayRef =
+        Arc::new(arrow::array::StringArray::from(encodings));
     let data_array: arrow::array::ArrayRef = Arc::new(arrow::array::BinaryArray::from_vec(
         datas.iter().map(|d| d.as_slice()).collect(),
     ));
@@ -644,11 +648,9 @@ async fn write_schemas_table(
         vec![id_array, name_array, encoding_array, data_array],
     )?;
 
-    let batches: Box<dyn arrow::record_batch::RecordBatchReader + Send> =
-        Box::new(arrow::record_batch::RecordBatchIterator::new(
-            vec![Ok(batch)],
-            schema,
-        ));
+    let batches: Box<dyn arrow::record_batch::RecordBatchReader + Send> = Box::new(
+        arrow::record_batch::RecordBatchIterator::new(vec![Ok(batch)], schema),
+    );
     table.add(batches).execute().await?;
 
     Ok(())
@@ -718,16 +720,8 @@ impl FastTopicWriter {
                 DataType::Timestamp(TimeUnit::Nanosecond, None),
                 false,
             )),
-            Arc::new(Field::new(
-                SEQUENCE_COLUMN,
-                DataType::UInt32,
-                false,
-            )),
-            Arc::new(Field::new(
-                CHANNEL_ID_COLUMN,
-                DataType::UInt16,
-                false,
-            )),
+            Arc::new(Field::new(SEQUENCE_COLUMN, DataType::UInt32, false)),
+            Arc::new(Field::new(CHANNEL_ID_COLUMN, DataType::UInt16, false)),
         ];
         fields.extend(message_schema.fields().iter().cloned());
         let schema = Arc::new(Schema::new(fields));
@@ -799,19 +793,16 @@ impl FastTopicWriter {
 
         // Create metadata arrays (convert u64 to i64 for timestamps)
         let log_times_i64: Vec<i64> = log_times.into_iter().map(|t| t as i64).collect();
-        let log_time_array: arrow::array::ArrayRef = Arc::new(
-            arrow::array::TimestampNanosecondArray::from(log_times_i64),
-        );
+        let log_time_array: arrow::array::ArrayRef =
+            Arc::new(arrow::array::TimestampNanosecondArray::from(log_times_i64));
         let publish_times_i64: Vec<i64> = publish_times.into_iter().map(|t| t as i64).collect();
         let publish_time_array: arrow::array::ArrayRef = Arc::new(
             arrow::array::TimestampNanosecondArray::from(publish_times_i64),
         );
-        let sequence_array: arrow::array::ArrayRef = Arc::new(
-            arrow::array::UInt32Array::from(sequences),
-        );
-        let channel_id_array: arrow::array::ArrayRef = Arc::new(
-            arrow::array::UInt16Array::from(channel_ids),
-        );
+        let sequence_array: arrow::array::ArrayRef =
+            Arc::new(arrow::array::UInt32Array::from(sequences));
+        let channel_id_array: arrow::array::ArrayRef =
+            Arc::new(arrow::array::UInt16Array::from(channel_ids));
 
         // Combine metadata columns with message columns
         let mut columns: Vec<arrow::array::ArrayRef> = vec![
@@ -824,19 +815,16 @@ impl FastTopicWriter {
 
         // Use with_match_field_names(false) to allow metadata differences between
         // schema fields and array fields (Arrow builders don't preserve field metadata).
-        let options = arrow::record_batch::RecordBatchOptions::new()
-            .with_match_field_names(false);
+        let options = arrow::record_batch::RecordBatchOptions::new().with_match_field_names(false);
         let batch = RecordBatch::try_new_with_options(self.schema.clone(), columns, &options)?;
         let schema = self.schema.clone();
         let table = self.table.clone();
 
         // Spawn write as background task
         let handle = tokio::spawn(async move {
-            let batches: Box<dyn arrow::record_batch::RecordBatchReader + Send> =
-                Box::new(arrow::record_batch::RecordBatchIterator::new(
-                    vec![Ok(batch)],
-                    schema,
-                ));
+            let batches: Box<dyn arrow::record_batch::RecordBatchReader + Send> = Box::new(
+                arrow::record_batch::RecordBatchIterator::new(vec![Ok(batch)], schema),
+            );
             table.add(batches).execute().await?;
             Ok(())
         });
@@ -851,9 +839,11 @@ impl FastTopicWriter {
         if let Some(handle) = self.pending_writes.pop() {
             match handle.await {
                 Ok(result) => result?,
-                Err(e) => return Err(WriterError::Lance(lancedb::Error::Runtime {
-                    message: format!("write task panicked: {}", e),
-                })),
+                Err(e) => {
+                    return Err(WriterError::Lance(lancedb::Error::Runtime {
+                        message: format!("write task panicked: {}", e),
+                    }))
+                }
             }
         }
         Ok(())
@@ -868,9 +858,11 @@ impl FastTopicWriter {
         for handle in self.pending_writes.drain(..) {
             match handle.await {
                 Ok(result) => result?,
-                Err(e) => return Err(WriterError::Lance(lancedb::Error::Runtime {
-                    message: format!("write task panicked: {}", e),
-                })),
+                Err(e) => {
+                    return Err(WriterError::Lance(lancedb::Error::Runtime {
+                        message: format!("write task panicked: {}", e),
+                    }))
+                }
             }
         }
         Ok(())
@@ -929,7 +921,11 @@ pub async fn convert_mcap_to_lance_fast<R: Read>(
         let writer = writers.get_mut(&raw_msg.topic).unwrap();
 
         // Transcode using pre-compiled transcoder (zero lookups per message)
-        writer.transcoder.as_ref().unwrap().transcode(&raw_msg.data, &mut writer.sink)?;
+        writer
+            .transcoder
+            .as_ref()
+            .unwrap()
+            .transcode(&raw_msg.data, &mut writer.sink)?;
 
         writer.log_times.push(raw_msg.log_time);
         writer.publish_times.push(raw_msg.publish_time);
@@ -967,19 +963,9 @@ pub async fn convert_mcap_to_lance_fast<R: Read>(
     }
 
     // Write metadata tables
-    write_channels_table(
-        db,
-        reader.channels(),
-        options.write_mode,
-    )
-    .await?;
+    write_channels_table(db, reader.channels(), options.write_mode).await?;
 
-    write_schemas_table(
-        db,
-        reader.schemas(),
-        options.write_mode,
-    )
-    .await?;
+    write_schemas_table(db, reader.schemas(), options.write_mode).await?;
 
     Ok(stats)
 }
@@ -1074,19 +1060,9 @@ pub async fn convert_protobuf_mcap_to_lance<R: Read>(
     }
 
     // Write metadata tables
-    write_channels_table(
-        db,
-        reader.channels(),
-        options.write_mode,
-    )
-    .await?;
+    write_channels_table(db, reader.channels(), options.write_mode).await?;
 
-    write_schemas_table(
-        db,
-        reader.schemas(),
-        options.write_mode,
-    )
-    .await?;
+    write_schemas_table(db, reader.schemas(), options.write_mode).await?;
 
     Ok(stats)
 }
@@ -1149,9 +1125,7 @@ pub async fn convert_cdr_mcap_to_lance<R: Read>(
                 "Error: malformed CDR message on topic '{}' (seq {}): {}",
                 raw_msg.topic, raw_msg.sequence, e
             );
-            eprintln!(
-                "  Hint: This topic may contain corrupted data. Try excluding it."
-            );
+            eprintln!("  Hint: This topic may contain corrupted data. Try excluding it.");
             return Err(e.into());
         }
 
@@ -1190,19 +1164,9 @@ pub async fn convert_cdr_mcap_to_lance<R: Read>(
     }
 
     // Write metadata tables
-    write_channels_table(
-        db,
-        reader.channels(),
-        options.write_mode,
-    )
-    .await?;
+    write_channels_table(db, reader.channels(), options.write_mode).await?;
 
-    write_schemas_table(
-        db,
-        reader.schemas(),
-        options.write_mode,
-    )
-    .await?;
+    write_schemas_table(db, reader.schemas(), options.write_mode).await?;
 
     Ok(stats)
 }
@@ -1353,15 +1317,13 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
-            let stats = convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::default())
-                .await
-                .unwrap();
+            let stats =
+                convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::default())
+                    .await
+                    .unwrap();
 
             assert_eq!(stats.total_messages, 5);
             assert_eq!(stats.tables_created, 1);
@@ -1382,15 +1344,13 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_multi_topic_mcap();
-            let stats = convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::default())
-                .await
-                .unwrap();
+            let stats =
+                convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::default())
+                    .await
+                    .unwrap();
 
             assert_eq!(stats.total_messages, 6);
             assert_eq!(stats.tables_created, 2);
@@ -1408,10 +1368,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_multi_topic_mcap();
             let options = ConvertOptions {
@@ -1436,10 +1393,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
 
@@ -1453,13 +1407,10 @@ mod tests {
             .unwrap();
 
             // Second conversion with overwrite
-            let stats = convert_mcap_to_lance(
-                Cursor::new(mcap_data),
-                &db,
-                ConvertOptions::overwrite(),
-            )
-            .await
-            .unwrap();
+            let stats =
+                convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::overwrite())
+                    .await
+                    .unwrap();
 
             assert_eq!(stats.total_messages, 5);
 
@@ -1474,10 +1425,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
 
@@ -1491,12 +1439,8 @@ mod tests {
             .unwrap();
 
             // Second conversion should fail
-            let result = convert_mcap_to_lance(
-                Cursor::new(mcap_data),
-                &db,
-                ConvertOptions::default(),
-            )
-            .await;
+            let result =
+                convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::default()).await;
 
             assert!(matches!(result, Err(WriterError::TableExists(_))));
         }
@@ -1506,10 +1450,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
             let options = ConvertOptions {
@@ -1534,15 +1475,13 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
-            let stats = convert_mcap_to_lance_fast(Cursor::new(mcap_data), &db, ConvertOptions::default())
-                .await
-                .unwrap();
+            let stats =
+                convert_mcap_to_lance_fast(Cursor::new(mcap_data), &db, ConvertOptions::default())
+                    .await
+                    .unwrap();
 
             assert_eq!(stats.total_messages, 5);
             assert_eq!(stats.tables_created, 1);
@@ -1564,10 +1503,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             // Create MCAP with a simple bool-containing message
             let mut buf = Vec::new();
@@ -1579,7 +1515,9 @@ mod tests {
                     id: 1,
                     name: "test_msgs/BoolMessage".into(),
                     encoding: "ros1msg".into(),
-                    data: Cow::Borrowed(b"uint32 height\nuint32 width\nbool is_bigendian\nbool is_dense"),
+                    data: Cow::Borrowed(
+                        b"uint32 height\nuint32 width\nbool is_bigendian\nbool is_dense",
+                    ),
                 });
 
                 let channel = Arc::new(Channel {
@@ -1608,9 +1546,10 @@ mod tests {
                 writer.finish().unwrap();
             }
 
-            let stats = convert_mcap_to_lance_fast(Cursor::new(buf), &db, ConvertOptions::default())
-                .await
-                .unwrap();
+            let stats =
+                convert_mcap_to_lance_fast(Cursor::new(buf), &db, ConvertOptions::default())
+                    .await
+                    .unwrap();
 
             assert_eq!(stats.total_messages, 1);
         }
@@ -1621,10 +1560,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mut buf = Vec::new();
             {
@@ -1682,9 +1618,10 @@ mod tests {
                 writer.finish().unwrap();
             }
 
-            let stats = convert_mcap_to_lance_fast(Cursor::new(buf), &db, ConvertOptions::default())
-                .await
-                .unwrap();
+            let stats =
+                convert_mcap_to_lance_fast(Cursor::new(buf), &db, ConvertOptions::default())
+                    .await
+                    .unwrap();
 
             assert_eq!(stats.total_messages, 1);
         }
@@ -1700,10 +1637,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
             convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::default())
@@ -1733,10 +1667,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
             convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::default())
@@ -1761,10 +1692,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
 
@@ -1778,13 +1706,10 @@ mod tests {
             .unwrap();
 
             // Second conversion with append
-            let stats = convert_mcap_to_lance(
-                Cursor::new(mcap_data),
-                &db,
-                ConvertOptions::append(),
-            )
-            .await
-            .unwrap();
+            let stats =
+                convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::append())
+                    .await
+                    .unwrap();
 
             assert_eq!(stats.total_messages, 5);
 
@@ -1799,21 +1724,15 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             let mcap_data = create_test_mcap();
 
             // Append to a table that doesn't exist should create it
-            let stats = convert_mcap_to_lance(
-                Cursor::new(mcap_data),
-                &db,
-                ConvertOptions::append(),
-            )
-            .await
-            .unwrap();
+            let stats =
+                convert_mcap_to_lance(Cursor::new(mcap_data), &db, ConvertOptions::append())
+                    .await
+                    .unwrap();
 
             assert_eq!(stats.total_messages, 5);
             assert_eq!(stats.tables_created, 1);
@@ -1871,20 +1790,13 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             // First: create table with x, y, z
             let mcap_xyz = create_test_mcap();
-            convert_mcap_to_lance(
-                Cursor::new(mcap_xyz),
-                &db,
-                ConvertOptions::default(),
-            )
-            .await
-            .unwrap();
+            convert_mcap_to_lance(Cursor::new(mcap_xyz), &db, ConvertOptions::default())
+                .await
+                .unwrap();
 
             // Verify initial schema
             let table = db.open_table("points").execute().await.unwrap();
@@ -1893,13 +1805,9 @@ mod tests {
 
             // Second: append data with x, y, z, w
             let mcap_xyzw = create_point_with_w_mcap();
-            convert_mcap_to_lance(
-                Cursor::new(mcap_xyzw),
-                &db,
-                ConvertOptions::append(),
-            )
-            .await
-            .unwrap();
+            convert_mcap_to_lance(Cursor::new(mcap_xyzw), &db, ConvertOptions::append())
+                .await
+                .unwrap();
 
             // Verify schema evolved
             let table = db.open_table("points").execute().await.unwrap();
@@ -1989,20 +1897,13 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             // First: create table with int32 value
             let mcap_i32 = create_int32_value_mcap();
-            convert_mcap_to_lance(
-                Cursor::new(mcap_i32),
-                &db,
-                ConvertOptions::default(),
-            )
-            .await
-            .unwrap();
+            convert_mcap_to_lance(Cursor::new(mcap_i32), &db, ConvertOptions::default())
+                .await
+                .unwrap();
 
             // Verify initial schema
             let table = db.open_table("values").execute().await.unwrap();
@@ -2014,13 +1915,9 @@ mod tests {
 
             // Second: append data with int64 value
             let mcap_i64 = create_int64_value_mcap();
-            convert_mcap_to_lance(
-                Cursor::new(mcap_i64),
-                &db,
-                ConvertOptions::append(),
-            )
-            .await
-            .unwrap();
+            convert_mcap_to_lance(Cursor::new(mcap_i64), &db, ConvertOptions::append())
+                .await
+                .unwrap();
 
             // Verify schema was widened
             let table = db.open_table("values").execute().await.unwrap();
@@ -2077,29 +1974,18 @@ mod tests {
             let dir = tempdir().unwrap();
             let db_path = dir.path().join("test.lance");
 
-            let db = connect(db_path.to_str().unwrap())
-                .execute()
-                .await
-                .unwrap();
+            let db = connect(db_path.to_str().unwrap()).execute().await.unwrap();
 
             // First: create table with int32 value
             let mcap_i32 = create_int32_value_mcap();
-            convert_mcap_to_lance(
-                Cursor::new(mcap_i32),
-                &db,
-                ConvertOptions::default(),
-            )
-            .await
-            .unwrap();
+            convert_mcap_to_lance(Cursor::new(mcap_i32), &db, ConvertOptions::default())
+                .await
+                .unwrap();
 
             // Second: try to append data with string value (incompatible)
             let mcap_str = create_string_value_mcap();
-            let result = convert_mcap_to_lance(
-                Cursor::new(mcap_str),
-                &db,
-                ConvertOptions::append(),
-            )
-            .await;
+            let result =
+                convert_mcap_to_lance(Cursor::new(mcap_str), &db, ConvertOptions::append()).await;
 
             assert!(matches!(result, Err(WriterError::Evolution(_))));
         }

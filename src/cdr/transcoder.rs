@@ -222,8 +222,7 @@ impl<'a> CdrCursor<'a> {
         } else {
             bytes
         };
-        std::str::from_utf8(string_bytes)
-            .map_err(|e| CdrTranscodeError::InvalidUtf8(e.to_string()))
+        std::str::from_utf8(string_bytes).map_err(|e| CdrTranscodeError::InvalidUtf8(e.to_string()))
     }
 
     /// Skip the 4-byte CDR encapsulation header and set origin for alignment.
@@ -401,7 +400,7 @@ where
 
             let nested_def = registry
                 .get(&full_name)
-                .ok_or_else(|| CdrTranscodeError::UnresolvedType(full_name))?;
+                .ok_or(CdrTranscodeError::UnresolvedType(full_name))?;
 
             transcode_message(cursor, nested_def, registry, sink)
         }
@@ -502,9 +501,21 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 1);
 
-        let x = batch.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
-        let y = batch.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
-        let z = batch.column(2).as_any().downcast_ref::<Float64Array>().unwrap();
+        let x = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let y = batch
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let z = batch
+            .column(2)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(x.value(0), 1.5);
         assert_eq!(y.value(0), 2.5);
@@ -532,7 +543,11 @@ mod tests {
         transcode(&with_encapsulation(&data), &def, &registry, &mut sink).unwrap();
 
         let batch = sink.finish().unwrap();
-        let b = batch.column(1).as_any().downcast_ref::<Int32Array>().unwrap();
+        let b = batch
+            .column(1)
+            .as_any()
+            .downcast_ref::<Int32Array>()
+            .unwrap();
         assert_eq!(b.value(0), 42);
     }
 
@@ -557,8 +572,16 @@ mod tests {
 
         let batch = sink.finish().unwrap();
 
-        let seq = batch.column(0).as_any().downcast_ref::<Int32Array>().unwrap();
-        let frame = batch.column(1).as_any().downcast_ref::<StringArray>().unwrap();
+        let seq = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<Int32Array>()
+            .unwrap();
+        let frame = batch
+            .column(1)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .unwrap();
 
         assert_eq!(seq.value(0), 42);
         assert_eq!(frame.value(0), "base_link");
@@ -597,8 +620,16 @@ mod tests {
         let batch = sink.finish().unwrap();
         assert_eq!(batch.num_rows(), 1);
 
-        let position = batch.column(0).as_any().downcast_ref::<StructArray>().unwrap();
-        let x = position.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
+        let position = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<StructArray>()
+            .unwrap();
+        let x = position
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
 
         assert_eq!(x.value(0), 1.0);
     }

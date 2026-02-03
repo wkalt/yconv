@@ -130,7 +130,8 @@ fn can_widen_time_unit(from: &TimeUnit, to: &TimeUnit) -> bool {
 /// Check if struct fields can be widened.
 fn can_widen_struct(from: &Fields, to: &Fields) -> bool {
     // Build a map of `to` fields
-    let to_map: HashMap<&str, &Field> = to.iter().map(|f| (f.name().as_str(), f.as_ref())).collect();
+    let to_map: HashMap<&str, &Field> =
+        to.iter().map(|f| (f.name().as_str(), f.as_ref())).collect();
 
     // Every field in `from` must either:
     // 1. Not exist in `to` (will be null in new data)
@@ -159,17 +160,37 @@ pub fn wider_type(t1: &DataType, t2: &DataType) -> DataType {
     // Return the "larger" type
     match (t1, t2) {
         // Signed integers - return the larger
-        (DataType::Int8, t) | (t, DataType::Int8) if matches!(t, DataType::Int16 | DataType::Int32 | DataType::Int64) => t.clone(),
-        (DataType::Int16, t) | (t, DataType::Int16) if matches!(t, DataType::Int32 | DataType::Int64) => t.clone(),
+        (DataType::Int8, t) | (t, DataType::Int8)
+            if matches!(t, DataType::Int16 | DataType::Int32 | DataType::Int64) =>
+        {
+            t.clone()
+        }
+        (DataType::Int16, t) | (t, DataType::Int16)
+            if matches!(t, DataType::Int32 | DataType::Int64) =>
+        {
+            t.clone()
+        }
         (DataType::Int32, DataType::Int64) | (DataType::Int64, DataType::Int32) => DataType::Int64,
 
         // Unsigned integers
-        (DataType::UInt8, t) | (t, DataType::UInt8) if matches!(t, DataType::UInt16 | DataType::UInt32 | DataType::UInt64) => t.clone(),
-        (DataType::UInt16, t) | (t, DataType::UInt16) if matches!(t, DataType::UInt32 | DataType::UInt64) => t.clone(),
-        (DataType::UInt32, DataType::UInt64) | (DataType::UInt64, DataType::UInt32) => DataType::UInt64,
+        (DataType::UInt8, t) | (t, DataType::UInt8)
+            if matches!(t, DataType::UInt16 | DataType::UInt32 | DataType::UInt64) =>
+        {
+            t.clone()
+        }
+        (DataType::UInt16, t) | (t, DataType::UInt16)
+            if matches!(t, DataType::UInt32 | DataType::UInt64) =>
+        {
+            t.clone()
+        }
+        (DataType::UInt32, DataType::UInt64) | (DataType::UInt64, DataType::UInt32) => {
+            DataType::UInt64
+        }
 
         // Floats
-        (DataType::Float32, DataType::Float64) | (DataType::Float64, DataType::Float32) => DataType::Float64,
+        (DataType::Float32, DataType::Float64) | (DataType::Float64, DataType::Float32) => {
+            DataType::Float64
+        }
 
         // Duration - use higher precision
         (DataType::Duration(u1), DataType::Duration(u2)) => {
@@ -221,8 +242,10 @@ fn merge_struct_fields(fields1: &Fields, fields2: &Fields) -> Fields {
     let mut seen: HashSet<&str> = HashSet::new();
 
     // First, add all fields from fields1, potentially widened
-    let fields2_map: HashMap<&str, &Field> =
-        fields2.iter().map(|f| (f.name().as_str(), f.as_ref())).collect();
+    let fields2_map: HashMap<&str, &Field> = fields2
+        .iter()
+        .map(|f| (f.name().as_str(), f.as_ref()))
+        .collect();
 
     for f1 in fields1.iter() {
         seen.insert(f1.name());
@@ -274,8 +297,7 @@ pub fn compare_schemas(
 
         if let Some(incoming_field) = incoming_map.get(field_name.as_str()) {
             // Field exists in both schemas
-            let merged_field =
-                merge_field(existing_field, incoming_field, &mut evolution)?;
+            let merged_field = merge_field(existing_field, incoming_field, &mut evolution)?;
             merged_fields.push(merged_field);
         } else {
             // Field only in existing schema - keep it nullable
@@ -488,14 +510,26 @@ mod tests {
 
         #[test]
         fn test_same_type() {
-            assert_eq!(wider_type(&DataType::Int32, &DataType::Int32), DataType::Int32);
+            assert_eq!(
+                wider_type(&DataType::Int32, &DataType::Int32),
+                DataType::Int32
+            );
         }
 
         #[test]
         fn test_integer_widening() {
-            assert_eq!(wider_type(&DataType::Int8, &DataType::Int32), DataType::Int32);
-            assert_eq!(wider_type(&DataType::Int32, &DataType::Int8), DataType::Int32);
-            assert_eq!(wider_type(&DataType::Int32, &DataType::Int64), DataType::Int64);
+            assert_eq!(
+                wider_type(&DataType::Int8, &DataType::Int32),
+                DataType::Int32
+            );
+            assert_eq!(
+                wider_type(&DataType::Int32, &DataType::Int8),
+                DataType::Int32
+            );
+            assert_eq!(
+                wider_type(&DataType::Int32, &DataType::Int64),
+                DataType::Int64
+            );
         }
 
         #[test]
@@ -564,7 +598,10 @@ mod tests {
             assert_eq!(evolution.widened_fields.get("a"), Some(&DataType::Int64));
 
             let merged = evolution.merged_schema.unwrap();
-            assert_eq!(merged.field_with_name("a").unwrap().data_type(), &DataType::Int64);
+            assert_eq!(
+                merged.field_with_name("a").unwrap().data_type(),
+                &DataType::Int64
+            );
         }
 
         #[test]
@@ -578,7 +615,10 @@ mod tests {
             assert!(!evolution.needs_evolution);
 
             let merged = evolution.merged_schema.unwrap();
-            assert_eq!(merged.field_with_name("a").unwrap().data_type(), &DataType::Int64);
+            assert_eq!(
+                merged.field_with_name("a").unwrap().data_type(),
+                &DataType::Int64
+            );
         }
 
         #[test]
@@ -587,7 +627,10 @@ mod tests {
             let incoming = Schema::new(vec![Field::new("a", DataType::Utf8, false)]);
 
             let result = compare_schemas(&existing, &incoming);
-            assert!(matches!(result, Err(EvolutionError::IncompatibleType { .. })));
+            assert!(matches!(
+                result,
+                Err(EvolutionError::IncompatibleType { .. })
+            ));
         }
 
         #[test]
@@ -598,10 +641,10 @@ mod tests {
                 Field::new("old_field", DataType::Float32, false),
             ]);
             let incoming = Schema::new(vec![
-                Field::new("id", DataType::Int64, false),     // Widened
-                Field::new("name", DataType::Utf8, false),    // Same
+                Field::new("id", DataType::Int64, false),  // Widened
+                Field::new("name", DataType::Utf8, false), // Same
                 Field::new("new_field", DataType::Boolean, true), // New
-                // old_field is missing
+                                                           // old_field is missing
             ]);
 
             let evolution = compare_schemas(&existing, &incoming).unwrap();

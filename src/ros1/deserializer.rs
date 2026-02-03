@@ -36,9 +36,15 @@ pub enum Value {
     Float64(f64),
     String(String),
     /// Time represented as (seconds, nanoseconds)
-    Time { sec: u32, nsec: u32 },
+    Time {
+        sec: u32,
+        nsec: u32,
+    },
     /// Duration represented as (seconds, nanoseconds)
-    Duration { sec: i32, nsec: i32 },
+    Duration {
+        sec: i32,
+        nsec: i32,
+    },
     /// Variable or fixed-length array
     Array(Vec<Value>),
     /// Nested message as field name -> value
@@ -221,13 +227,15 @@ impl<'a> Cursor<'a> {
     fn read_string(&mut self) -> Result<String, DeserializeError> {
         let len = self.read_u32()? as usize;
         let bytes = self.read_bytes(len)?;
-        String::from_utf8(bytes.to_vec())
-            .map_err(|e| DeserializeError::InvalidUtf8(e.to_string()))
+        String::from_utf8(bytes.to_vec()).map_err(|e| DeserializeError::InvalidUtf8(e.to_string()))
     }
 }
 
 /// Deserialize a primitive value from the cursor.
-fn deserialize_primitive(cursor: &mut Cursor, primitive: Primitive) -> Result<Value, DeserializeError> {
+fn deserialize_primitive(
+    cursor: &mut Cursor,
+    primitive: Primitive,
+) -> Result<Value, DeserializeError> {
     match primitive {
         Primitive::Bool => {
             let byte = cursor.read_u8()?;
@@ -296,7 +304,7 @@ fn deserialize_field_type<R: TypeRegistry>(
 
             let nested_def = registry
                 .get(&full_name)
-                .ok_or_else(|| DeserializeError::UnresolvedType(full_name))?;
+                .ok_or(DeserializeError::UnresolvedType(full_name))?;
 
             deserialize_message(cursor, nested_def, registry)
         }
@@ -590,7 +598,7 @@ mod tests {
             let def = MessageDefinition::parse("string[] names").unwrap();
             let mut data = Vec::new();
             data.extend_from_slice(&2u32.to_le_bytes()); // count
-            // First string
+                                                         // First string
             data.extend_from_slice(&5u32.to_le_bytes());
             data.extend_from_slice(b"alice");
             // Second string
@@ -759,7 +767,7 @@ mod tests {
 
             let mut data = Vec::new();
             data.extend_from_slice(&2u32.to_le_bytes()); // count
-            // Point 1
+                                                         // Point 1
             data.extend_from_slice(&1.0f64.to_le_bytes());
             data.extend_from_slice(&2.0f64.to_le_bytes());
             // Point 2
@@ -792,7 +800,10 @@ mod tests {
             let data = [0u8; 2]; // Only 2 bytes, need 4
             let result = deserialize_simple(&data, &def);
             match result {
-                Err(DeserializeError::UnexpectedEof { needed: 4, available: 2 }) => {}
+                Err(DeserializeError::UnexpectedEof {
+                    needed: 4,
+                    available: 2,
+                }) => {}
                 _ => panic!("Expected UnexpectedEof error"),
             }
         }
@@ -804,7 +815,10 @@ mod tests {
             data.extend_from_slice(&100u32.to_le_bytes()); // claims 100 bytes
             data.extend_from_slice(b"short"); // only 5 bytes
             let result = deserialize_simple(&data, &def);
-            assert!(matches!(result, Err(DeserializeError::UnexpectedEof { .. })));
+            assert!(matches!(
+                result,
+                Err(DeserializeError::UnexpectedEof { .. })
+            ));
         }
 
         #[test]
@@ -814,7 +828,10 @@ mod tests {
             data.extend_from_slice(&10u32.to_le_bytes()); // claims 10 elements
             data.extend_from_slice(&1u32.to_le_bytes()); // only 1 element
             let result = deserialize_simple(&data, &def);
-            assert!(matches!(result, Err(DeserializeError::UnexpectedEof { .. })));
+            assert!(matches!(
+                result,
+                Err(DeserializeError::UnexpectedEof { .. })
+            ));
         }
 
         #[test]
@@ -867,7 +884,7 @@ mod tests {
             data.extend_from_slice(b"rgb8");
             data.push(0); // is_bigendian
             data.extend_from_slice(&1920u32.to_le_bytes()); // step
-            // Small fake image data
+                                                            // Small fake image data
             data.extend_from_slice(&6u32.to_le_bytes()); // data len
             data.extend_from_slice(&[255, 0, 0, 0, 255, 0]); // 2 pixels
 

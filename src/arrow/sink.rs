@@ -164,9 +164,9 @@ impl Builder {
             Builder::List(state) => {
                 let values = state.element.finish();
                 let offsets_vec = std::mem::take(&mut state.offsets);
-                let offsets = arrow::buffer::OffsetBuffer::new(
-                    arrow::buffer::ScalarBuffer::from(offsets_vec),
-                );
+                let offsets = arrow::buffer::OffsetBuffer::new(arrow::buffer::ScalarBuffer::from(
+                    offsets_vec,
+                ));
                 // Always take the nulls to reset for next batch
                 let nulls_vec = std::mem::take(&mut state.nulls);
                 let nulls = if nulls_vec.iter().all(|&n| n) {
@@ -189,7 +189,9 @@ impl Builder {
                     Some(NullBuffer::from(nulls_vec))
                 };
                 let field = Arc::new(Field::new("item", state.element_type.clone(), true));
-                Arc::new(arrow::array::FixedSizeListArray::new(field, state.size, values, nulls))
+                Arc::new(arrow::array::FixedSizeListArray::new(
+                    field, state.size, values, nulls,
+                ))
             }
             Builder::Struct(state) => {
                 let arrays: Vec<ArrayRef> = state.children.iter_mut().map(|c| c.finish()).collect();
@@ -354,7 +356,11 @@ impl RowSink for ArrowRowSink {
                     _ => "other",
                 };
                 return Err(SinkError::TypeMismatch {
-                    expected: format!("bool (field={}, depth={})", self.current_field, self.context_stack.len()),
+                    expected: format!(
+                        "bool (field={}, depth={})",
+                        self.current_field,
+                        self.context_stack.len()
+                    ),
                     got: got.into(),
                 });
             }
@@ -367,10 +373,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::Int8(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "i8".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "i8".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -380,10 +388,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::Int16(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "i16".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "i16".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -393,10 +403,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::Int32(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "i32".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "i32".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -406,10 +418,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::Int64(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "i64".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "i64".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -419,10 +433,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::UInt8(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "u8".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "u8".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -432,10 +448,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::UInt16(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "u16".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "u16".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -445,10 +463,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::UInt32(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "u32".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "u32".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -458,10 +478,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::UInt64(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "u64".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "u64".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -471,10 +493,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::Float32(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "f32".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "f32".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -484,10 +508,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::Float64(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "f64".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "f64".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -519,7 +545,11 @@ impl RowSink for ArrowRowSink {
                     Builder::Struct(_) => "struct",
                 };
                 return Err(SinkError::TypeMismatch {
-                    expected: format!("string (field={}, context_depth={})", self.current_field, self.context_stack.len()),
+                    expected: format!(
+                        "string (field={}, context_depth={})",
+                        self.current_field,
+                        self.context_stack.len()
+                    ),
                     got: got.into(),
                 });
             }
@@ -532,10 +562,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::Binary(b) => b.append_value(value),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "binary".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "binary".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -545,10 +577,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::TimestampNs(b) => b.append_value(nanos),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "timestamp".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "timestamp".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -558,10 +592,12 @@ impl RowSink for ArrowRowSink {
         let builder = self.current_builder()?;
         match builder {
             Builder::DurationNs(b) => b.append_value(nanos),
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "duration".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "duration".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -581,10 +617,12 @@ impl RowSink for ArrowRowSink {
                     Builder::UInt8(b) => {
                         b.append_slice(values);
                     }
-                    _ => return Err(SinkError::TypeMismatch {
-                        expected: "list<u8>".into(),
-                        got: "list<other>".into(),
-                    }),
+                    _ => {
+                        return Err(SinkError::TypeMismatch {
+                            expected: "list<u8>".into(),
+                            got: "list<other>".into(),
+                        })
+                    }
                 }
                 // Update offset
                 let element_len = match state.element.as_ref() {
@@ -600,17 +638,21 @@ impl RowSink for ArrowRowSink {
                     Builder::UInt8(b) => {
                         b.append_slice(values);
                     }
-                    _ => return Err(SinkError::TypeMismatch {
-                        expected: "fixed_list<u8>".into(),
-                        got: "fixed_list<other>".into(),
-                    }),
+                    _ => {
+                        return Err(SinkError::TypeMismatch {
+                            expected: "fixed_list<u8>".into(),
+                            got: "fixed_list<other>".into(),
+                        })
+                    }
                 }
                 state.nulls.push(true);
             }
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "list".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "list".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -625,10 +667,12 @@ impl RowSink for ArrowRowSink {
                     Builder::Float32(b) => {
                         b.append_slice(values);
                     }
-                    _ => return Err(SinkError::TypeMismatch {
-                        expected: "list<f32>".into(),
-                        got: "list<other>".into(),
-                    }),
+                    _ => {
+                        return Err(SinkError::TypeMismatch {
+                            expected: "list<f32>".into(),
+                            got: "list<other>".into(),
+                        })
+                    }
                 }
                 let element_len = match state.element.as_ref() {
                     Builder::Float32(b) => b.len(),
@@ -642,17 +686,21 @@ impl RowSink for ArrowRowSink {
                     Builder::Float32(b) => {
                         b.append_slice(values);
                     }
-                    _ => return Err(SinkError::TypeMismatch {
-                        expected: "fixed_list<f32>".into(),
-                        got: "fixed_list<other>".into(),
-                    }),
+                    _ => {
+                        return Err(SinkError::TypeMismatch {
+                            expected: "fixed_list<f32>".into(),
+                            got: "fixed_list<other>".into(),
+                        })
+                    }
                 }
                 state.nulls.push(true);
             }
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "list".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "list".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -667,10 +715,12 @@ impl RowSink for ArrowRowSink {
                     Builder::Float64(b) => {
                         b.append_slice(values);
                     }
-                    _ => return Err(SinkError::TypeMismatch {
-                        expected: "list<f64>".into(),
-                        got: "list<other>".into(),
-                    }),
+                    _ => {
+                        return Err(SinkError::TypeMismatch {
+                            expected: "list<f64>".into(),
+                            got: "list<other>".into(),
+                        })
+                    }
                 }
                 let element_len = match state.element.as_ref() {
                     Builder::Float64(b) => b.len(),
@@ -684,17 +734,21 @@ impl RowSink for ArrowRowSink {
                     Builder::Float64(b) => {
                         b.append_slice(values);
                     }
-                    _ => return Err(SinkError::TypeMismatch {
-                        expected: "fixed_list<f64>".into(),
-                        got: "fixed_list<other>".into(),
-                    }),
+                    _ => {
+                        return Err(SinkError::TypeMismatch {
+                            expected: "fixed_list<f64>".into(),
+                            got: "fixed_list<other>".into(),
+                        })
+                    }
                 }
                 state.nulls.push(true);
             }
-            _ => return Err(SinkError::TypeMismatch {
-                expected: "list".into(),
-                got: "other".into(),
-            }),
+            _ => {
+                return Err(SinkError::TypeMismatch {
+                    expected: "list".into(),
+                    got: "other".into(),
+                })
+            }
         }
         self.advance_field();
         Ok(())
@@ -728,12 +782,16 @@ impl RowSink for ArrowRowSink {
     }
 
     fn exit_struct(&mut self) -> Result<(), Self::Error> {
-        let context = self.context_stack.pop().ok_or_else(|| {
-            SinkError::Navigation("exit_struct with empty stack".into())
-        })?;
+        let context = self
+            .context_stack
+            .pop()
+            .ok_or_else(|| SinkError::Navigation("exit_struct with empty stack".into()))?;
 
         match context {
-            Context::Struct { struct_ptr, saved_field_idx } => {
+            Context::Struct {
+                struct_ptr,
+                saved_field_idx,
+            } => {
                 // SAFETY: struct_ptr was valid when we entered and hasn't been invalidated
                 let struct_state = unsafe { &mut *struct_ptr };
                 struct_state.nulls.push(true);
@@ -745,7 +803,10 @@ impl RowSink for ArrowRowSink {
                         self.current_builders_len = self.builders.len();
                         self.current_field = saved_field_idx + 1;
                     }
-                    Some(Context::Struct { struct_ptr: parent_ptr, .. }) => {
+                    Some(Context::Struct {
+                        struct_ptr: parent_ptr,
+                        ..
+                    }) => {
                         // SAFETY: parent struct_ptr is still valid
                         let parent_state = unsafe { &mut **parent_ptr };
                         self.current_builders_ptr = parent_state.children.as_mut_ptr();
@@ -757,12 +818,16 @@ impl RowSink for ArrowRowSink {
                         self.current_field = saved_field_idx;
                     }
                     None => {
-                        return Err(SinkError::Navigation("empty context after exit_struct".into()));
+                        return Err(SinkError::Navigation(
+                            "empty context after exit_struct".into(),
+                        ));
                     }
                 }
             }
             _ => {
-                return Err(SinkError::Navigation("exit_struct but was not in struct".into()));
+                return Err(SinkError::Navigation(
+                    "exit_struct but was not in struct".into(),
+                ));
             }
         }
         Ok(())
@@ -791,12 +856,16 @@ impl RowSink for ArrowRowSink {
     }
 
     fn exit_list(&mut self) -> Result<(), Self::Error> {
-        let context = self.context_stack.pop().ok_or_else(|| {
-            SinkError::Navigation("exit_list with empty stack".into())
-        })?;
+        let context = self
+            .context_stack
+            .pop()
+            .ok_or_else(|| SinkError::Navigation("exit_list with empty stack".into()))?;
 
         match context {
-            Context::List { element_ptr, saved_field_idx } => {
+            Context::List {
+                element_ptr,
+                saved_field_idx,
+            } => {
                 // We need to finalize the list by updating offsets
                 // First, get the list builder from the parent context
                 self.current_field = saved_field_idx;
@@ -816,7 +885,9 @@ impl RowSink for ArrowRowSink {
                         // Nested list - parent is also a list, keep as is
                     }
                     None => {
-                        return Err(SinkError::Navigation("empty context after exit_list".into()));
+                        return Err(SinkError::Navigation(
+                            "empty context after exit_list".into(),
+                        ));
                     }
                 }
 
@@ -859,7 +930,9 @@ impl RowSink for ArrowRowSink {
                 self.current_field += 1;
             }
             _ => {
-                return Err(SinkError::Navigation("exit_list but was not in list".into()));
+                return Err(SinkError::Navigation(
+                    "exit_list but was not in list".into(),
+                ));
             }
         }
         Ok(())
@@ -887,7 +960,7 @@ impl RowSink for ArrowRowSink {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use arrow::array::{Array, Float64Array, Int32Array, StringArray, StructArray, ListArray};
+    use arrow::array::{Array, Float64Array, Int32Array, ListArray, StringArray, StructArray};
 
     #[test]
     fn test_simple_primitives() {
@@ -969,13 +1042,11 @@ mod tests {
 
     #[test]
     fn test_list_of_primitives() {
-        let schema = Arc::new(Schema::new(vec![
-            Arc::new(Field::new(
-                "values",
-                DataType::List(Arc::new(Field::new("item", DataType::Int32, true))),
-                false,
-            )),
-        ]));
+        let schema = Arc::new(Schema::new(vec![Arc::new(Field::new(
+            "values",
+            DataType::List(Arc::new(Field::new("item", DataType::Int32, true))),
+            false,
+        ))]));
 
         let mut sink = ArrowRowSink::new(schema).unwrap();
 
@@ -1055,11 +1126,23 @@ mod tests {
             .unwrap();
         assert_eq!(list.len(), 1);
 
-        let structs = list.values().as_any().downcast_ref::<StructArray>().unwrap();
+        let structs = list
+            .values()
+            .as_any()
+            .downcast_ref::<StructArray>()
+            .unwrap();
         assert_eq!(structs.len(), 2);
 
-        let x = structs.column(0).as_any().downcast_ref::<Float64Array>().unwrap();
-        let y = structs.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+        let x = structs
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let y = structs
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
         assert_eq!(x.value(0), 1.0);
         assert_eq!(y.value(0), 2.0);
         assert_eq!(x.value(1), 3.0);

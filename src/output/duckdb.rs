@@ -40,7 +40,10 @@ impl OutputDatabase for DuckDbOutput {
         let table_name = sanitize_table_name(topic);
 
         Ok(Box::new(DuckDbTopicWriter {
-            conn: self.conn.try_clone().map_err(|e| OutputError::DuckDb(e.to_string()))?,
+            conn: self
+                .conn
+                .try_clone()
+                .map_err(|e| OutputError::DuckDb(e.to_string()))?,
             table_name,
             table_created: false,
         }))
@@ -116,9 +119,7 @@ impl DuckDbTopicWriter {
 fn sanitize_table_name(topic: &str) -> String {
     topic
         .trim_start_matches('/')
-        .replace('/', "_")
-        .replace('-', "_")
-        .replace('.', "_")
+        .replace(['/', '-', '.'], "_")
 }
 
 /// Generate CREATE TABLE SQL from Arrow schema.
@@ -132,11 +133,7 @@ fn arrow_schema_to_create_table(table_name: &str, schema: &Schema) -> String {
         })
         .collect();
 
-    format!(
-        "CREATE TABLE \"{}\" ({})",
-        table_name,
-        columns.join(", ")
-    )
+    format!("CREATE TABLE \"{}\" ({})", table_name, columns.join(", "))
 }
 
 /// Convert Arrow DataType to DuckDB SQL type.
@@ -163,7 +160,7 @@ fn arrow_type_to_duckdb(dt: &arrow::datatypes::DataType) -> &'static str {
         DataType::Time32(_) | DataType::Time64(_) => "TIME",
         DataType::List(_) | DataType::LargeList(_) | DataType::FixedSizeList(_, _) => "JSON", // DuckDB handles lists via JSON or native lists
         DataType::Struct(_) => "JSON", // Nested structs as JSON
-        _ => "VARCHAR", // Fallback
+        _ => "VARCHAR",                // Fallback
     }
 }
 

@@ -113,7 +113,9 @@ impl ProtobufSchema {
                     true,
                 )))
             } else {
-                return Err(ProtobufSchemaError::UnsupportedType("map without message kind".to_string()));
+                return Err(ProtobufSchemaError::UnsupportedType(
+                    "map without message kind".to_string(),
+                ));
             }
         } else if field.is_list() {
             DataType::List(Arc::new(Field::new("item", data_type, true)))
@@ -150,9 +152,7 @@ impl ProtobufSchema {
                     "google.protobuf.Timestamp" => {
                         Ok(DataType::Timestamp(TimeUnit::Nanosecond, None))
                     }
-                    "google.protobuf.Duration" => {
-                        Ok(DataType::Duration(TimeUnit::Nanosecond))
-                    }
+                    "google.protobuf.Duration" => Ok(DataType::Duration(TimeUnit::Nanosecond)),
                     _ => {
                         // Regular nested message
                         let fields: Vec<Field> = msg_desc
@@ -172,7 +172,7 @@ impl ProtobufSchema {
         message_name: &str,
     ) -> Result<String, ProtobufSchemaError> {
         let mut lines = Vec::new();
-        lines.push(format!("syntax = \"proto3\";"));
+        lines.push("syntax = \"proto3\";".to_string());
         lines.push(String::new());
         lines.push(format!("message {} {{", message_name));
 
@@ -180,9 +180,19 @@ impl ProtobufSchema {
             let proto_type = Self::arrow_to_proto_type(field.data_type())?;
             let field_num = i + 1;
             if matches!(field.data_type(), DataType::List(_)) {
-                lines.push(format!("  repeated {} {} = {};", proto_type, field.name(), field_num));
+                lines.push(format!(
+                    "  repeated {} {} = {};",
+                    proto_type,
+                    field.name(),
+                    field_num
+                ));
             } else {
-                lines.push(format!("  {} {} = {};", proto_type, field.name(), field_num));
+                lines.push(format!(
+                    "  {} {} = {};",
+                    proto_type,
+                    field.name(),
+                    field_num
+                ));
             }
         }
 

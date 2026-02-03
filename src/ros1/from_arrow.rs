@@ -28,7 +28,8 @@ pub enum FromArrowError {
 /// and `MSG: type/Name` markers.
 pub fn arrow_schema_to_msg(schema: &Schema) -> Result<String, FromArrowError> {
     let mut sections = Vec::new();
-    let mut collected_types: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut collected_types: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
 
     // Generate root message definition
     let mut root_lines = Vec::new();
@@ -181,7 +182,9 @@ fn arrow_field_to_ros1(field: &Field) -> Result<String, FromArrowError> {
                 Ok(ros1_type.clone())
             } else {
                 // Fallback for schemas without metadata (e.g., created without round-trip support)
-                Err(FromArrowError::MissingTypeMetadata(field.name().to_string()))
+                Err(FromArrowError::MissingTypeMetadata(
+                    field.name().to_string(),
+                ))
             }
         }
 
@@ -300,10 +303,8 @@ impl Ros1FieldInfo {
             }
 
             DataType::Struct(fields) => {
-                let nested: Result<Vec<_>, _> = fields
-                    .iter()
-                    .map(|f| Self::from_arrow_field(f))
-                    .collect();
+                let nested: Result<Vec<_>, _> =
+                    fields.iter().map(|f| Self::from_arrow_field(f)).collect();
                 // Get ROS1 type name from metadata
                 let ros_type = metadata
                     .get(ROS1_TYPE_METADATA_KEY)

@@ -3,7 +3,9 @@
 //! This module decodes protobuf wire format directly into a RowSink,
 //! similar to how the ROS1 transcoder works.
 
-use prost_reflect::{DynamicMessage, FieldDescriptor, Kind, MessageDescriptor, ReflectMessage, Value};
+use prost_reflect::{
+    DynamicMessage, FieldDescriptor, Kind, MessageDescriptor, ReflectMessage, Value,
+};
 use thiserror::Error;
 
 use crate::sink::RowSink;

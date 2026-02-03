@@ -110,7 +110,9 @@ impl ProtobufWriter {
     where
         S::Error: fmt::Display,
     {
-        let len = source.enter_list().map_err(|e| WriteError::Source(e.to_string()))?;
+        let len = source
+            .enter_list()
+            .map_err(|e| WriteError::Source(e.to_string()))?;
 
         let wire_type = kind_to_wire_type(field.kind());
 
@@ -119,7 +121,9 @@ impl ProtobufWriter {
             self.write_value(source, field.kind(), field)?;
         }
 
-        source.exit_list().map_err(|e| WriteError::Source(e.to_string()))?;
+        source
+            .exit_list()
+            .map_err(|e| WriteError::Source(e.to_string()))?;
         Ok(())
     }
 
@@ -132,20 +136,30 @@ impl ProtobufWriter {
     where
         S::Error: fmt::Display,
     {
-        let len = source.enter_list().map_err(|e| WriteError::Source(e.to_string()))?;
+        let len = source
+            .enter_list()
+            .map_err(|e| WriteError::Source(e.to_string()))?;
 
         // Get key/value fields from the map entry message descriptor
         let (key_field, value_field) = if let Kind::Message(entry_desc) = field.kind() {
-            let key = entry_desc.get_field(1).ok_or_else(|| WriteError::MissingField("map key".to_string()))?;
-            let value = entry_desc.get_field(2).ok_or_else(|| WriteError::MissingField("map value".to_string()))?;
+            let key = entry_desc
+                .get_field(1)
+                .ok_or_else(|| WriteError::MissingField("map key".to_string()))?;
+            let value = entry_desc
+                .get_field(2)
+                .ok_or_else(|| WriteError::MissingField("map value".to_string()))?;
             (key, value)
         } else {
-            return Err(WriteError::UnsupportedType("map without message kind".to_string()));
+            return Err(WriteError::UnsupportedType(
+                "map without message kind".to_string(),
+            ));
         };
 
         for _ in 0..len {
             // Each map entry is a message with key (field 1) and value (field 2)
-            source.enter_struct().map_err(|e| WriteError::Source(e.to_string()))?;
+            source
+                .enter_struct()
+                .map_err(|e| WriteError::Source(e.to_string()))?;
 
             // Write the entry as a length-delimited message
             self.write_tag(field.number(), WireType::LengthDelimited);
@@ -169,10 +183,14 @@ impl ProtobufWriter {
             encode_varint(entry_data.len() as u64, &mut self.buffer);
             self.buffer.extend_from_slice(&entry_data);
 
-            source.exit_struct().map_err(|e| WriteError::Source(e.to_string()))?;
+            source
+                .exit_struct()
+                .map_err(|e| WriteError::Source(e.to_string()))?;
         }
 
-        source.exit_list().map_err(|e| WriteError::Source(e.to_string()))?;
+        source
+            .exit_list()
+            .map_err(|e| WriteError::Source(e.to_string()))?;
         Ok(())
     }
 
@@ -188,49 +206,71 @@ impl ProtobufWriter {
     {
         match kind {
             Kind::Bool => {
-                let v = source.read_bool().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_bool()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_bool(v);
             }
             Kind::Int32 | Kind::Sint32 | Kind::Sfixed32 => {
-                let v = source.read_i32().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_i32()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_i32(v, kind);
             }
             Kind::Int64 | Kind::Sint64 | Kind::Sfixed64 => {
-                let v = source.read_i64().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_i64()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_i64(v, kind);
             }
             Kind::Uint32 | Kind::Fixed32 => {
-                let v = source.read_u32().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_u32()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_u32(v, kind);
             }
             Kind::Uint64 | Kind::Fixed64 => {
-                let v = source.read_u64().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_u64()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_u64(v, kind);
             }
             Kind::Float => {
-                let v = source.read_f32().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_f32()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_f32(v);
             }
             Kind::Double => {
-                let v = source.read_f64().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_f64()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_f64(v);
             }
             Kind::String => {
-                let v = source.read_string().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_string()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_string(&v);
             }
             Kind::Bytes => {
-                let v = source.read_bytes().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_bytes()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 self.write_bytes(&v);
             }
             Kind::Enum(_) => {
-                let v = source.read_i32().map_err(|e| WriteError::Source(e.to_string()))?;
+                let v = source
+                    .read_i32()
+                    .map_err(|e| WriteError::Source(e.to_string()))?;
                 encode_varint(v as u64, &mut self.buffer);
             }
             Kind::Message(msg_desc) => {
                 match msg_desc.full_name() {
                     "google.protobuf.Timestamp" => {
-                        let nanos = source.read_timestamp_nanos().map_err(|e| WriteError::Source(e.to_string()))?;
+                        let nanos = source
+                            .read_timestamp_nanos()
+                            .map_err(|e| WriteError::Source(e.to_string()))?;
                         let seconds = nanos / 1_000_000_000;
                         let nano_part = (nanos % 1_000_000_000) as i32;
 
@@ -251,7 +291,9 @@ impl ProtobufWriter {
                         self.buffer.extend_from_slice(&msg_buf);
                     }
                     "google.protobuf.Duration" => {
-                        let nanos = source.read_duration_nanos().map_err(|e| WriteError::Source(e.to_string()))?;
+                        let nanos = source
+                            .read_duration_nanos()
+                            .map_err(|e| WriteError::Source(e.to_string()))?;
                         let seconds = nanos / 1_000_000_000;
                         let nano_part = (nanos % 1_000_000_000) as i32;
 
@@ -270,7 +312,9 @@ impl ProtobufWriter {
                     }
                     _ => {
                         // Regular nested message - serialize to temp buffer first
-                        source.enter_struct().map_err(|e| WriteError::Source(e.to_string()))?;
+                        source
+                            .enter_struct()
+                            .map_err(|e| WriteError::Source(e.to_string()))?;
 
                         let mut msg_buf = Vec::new();
                         std::mem::swap(&mut self.buffer, &mut msg_buf);
@@ -286,7 +330,9 @@ impl ProtobufWriter {
                         encode_varint(nested_data.len() as u64, &mut self.buffer);
                         self.buffer.extend_from_slice(&nested_data);
 
-                        source.exit_struct().map_err(|e| WriteError::Source(e.to_string()))?;
+                        source
+                            .exit_struct()
+                            .map_err(|e| WriteError::Source(e.to_string()))?;
                     }
                 }
             }

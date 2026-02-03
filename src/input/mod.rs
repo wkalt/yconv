@@ -69,10 +69,7 @@ pub enum InputFormat {
 }
 
 /// Open an input database for the given format and path.
-pub fn open_input(
-    format: InputFormat,
-    path: &Path,
-) -> Result<Box<dyn InputDatabase>, InputError> {
+pub fn open_input(format: InputFormat, path: &Path) -> Result<Box<dyn InputDatabase>, InputError> {
     match format {
         InputFormat::Parquet => Ok(Box::new(parquet::ParquetInput::new(path)?)),
         InputFormat::Vortex => Ok(Box::new(vortex::VortexInput::new(path)?)),

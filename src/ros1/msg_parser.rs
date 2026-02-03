@@ -94,9 +94,7 @@ pub enum FieldType {
     Primitive(Primitive),
 
     /// A variable-length array (e.g., `uint8[]`)
-    Array {
-        element: Box<FieldType>,
-    },
+    Array { element: Box<FieldType> },
 
     /// A fixed-length array (e.g., `uint8[16]`)
     FixedArray {
@@ -117,8 +115,14 @@ impl fmt::Display for FieldType {
             FieldType::Primitive(p) => write!(f, "{}", p),
             FieldType::Array { element } => write!(f, "{}[]", element),
             FieldType::FixedArray { element, length } => write!(f, "{}[{}]", element, length),
-            FieldType::Nested { package: Some(pkg), name } => write!(f, "{}/{}", pkg, name),
-            FieldType::Nested { package: None, name } => write!(f, "{}", name),
+            FieldType::Nested {
+                package: Some(pkg),
+                name,
+            } => write!(f, "{}/{}", pkg, name),
+            FieldType::Nested {
+                package: None,
+                name,
+            } => write!(f, "{}", name),
         }
     }
 }
@@ -298,8 +302,9 @@ fn parse_constant(line: &str) -> Result<Constant, ParseError> {
         .to_string();
 
     // Constants must be primitive types
-    let constant_type = Primitive::from_str(type_str)
-        .ok_or_else(|| ParseError::InvalidConstant(format!("non-primitive constant type: {}", type_str)))?;
+    let constant_type = Primitive::from_str(type_str).ok_or_else(|| {
+        ParseError::InvalidConstant(format!("non-primitive constant type: {}", type_str))
+    })?;
 
     Ok(Constant {
         name,
@@ -646,11 +651,20 @@ mod tests {
             let def = MessageDefinition::parse(input).unwrap();
             assert_eq!(def.fields.len(), 3);
             assert_eq!(def.fields[0].name, "seq");
-            assert_eq!(def.fields[0].field_type, FieldType::Primitive(Primitive::UInt32));
+            assert_eq!(
+                def.fields[0].field_type,
+                FieldType::Primitive(Primitive::UInt32)
+            );
             assert_eq!(def.fields[1].name, "stamp");
-            assert_eq!(def.fields[1].field_type, FieldType::Primitive(Primitive::Time));
+            assert_eq!(
+                def.fields[1].field_type,
+                FieldType::Primitive(Primitive::Time)
+            );
             assert_eq!(def.fields[2].name, "frame_id");
-            assert_eq!(def.fields[2].field_type, FieldType::Primitive(Primitive::String));
+            assert_eq!(
+                def.fields[2].field_type,
+                FieldType::Primitive(Primitive::String)
+            );
         }
 
         #[test]
@@ -794,8 +808,14 @@ mod tests {
             "#;
             let def = MessageDefinition::parse(input).unwrap();
             assert_eq!(def.fields.len(), 2);
-            assert_eq!(def.fields[0].field_type, FieldType::Primitive(Primitive::Int8));
-            assert_eq!(def.fields[1].field_type, FieldType::Primitive(Primitive::UInt8));
+            assert_eq!(
+                def.fields[0].field_type,
+                FieldType::Primitive(Primitive::Int8)
+            );
+            assert_eq!(
+                def.fields[1].field_type,
+                FieldType::Primitive(Primitive::UInt8)
+            );
         }
     }
 

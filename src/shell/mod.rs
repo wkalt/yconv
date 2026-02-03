@@ -43,10 +43,7 @@ pub enum ShellFormat {
 /// Detect the format of a data source from its path.
 pub fn detect_format(path: &Path) -> Result<ShellFormat, ShellError> {
     if path.is_file() {
-        let ext = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("");
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
         match ext {
             "parquet" => return Ok(ShellFormat::Parquet),
@@ -63,46 +60,38 @@ pub fn detect_format(path: &Path) -> Result<ShellFormat, ShellError> {
         }
 
         // Check for LanceDB database (directory containing .lance table directories)
-        let has_lance_tables = std::fs::read_dir(path)?
-            .filter_map(|e| e.ok())
-            .any(|e| {
-                let p = e.path();
-                p.is_dir() && p.extension().map(|ext| ext == "lance").unwrap_or(false)
-            });
+        let has_lance_tables = std::fs::read_dir(path)?.filter_map(|e| e.ok()).any(|e| {
+            let p = e.path();
+            p.is_dir() && p.extension().map(|ext| ext == "lance").unwrap_or(false)
+        });
         if has_lance_tables {
             return Ok(ShellFormat::Lance);
         }
 
         // Check for directory of parquet files
-        let has_parquet = std::fs::read_dir(path)?
-            .filter_map(|e| e.ok())
-            .any(|e| {
-                e.path()
-                    .extension()
-                    .map(|ext| ext == "parquet")
-                    .unwrap_or(false)
-            });
+        let has_parquet = std::fs::read_dir(path)?.filter_map(|e| e.ok()).any(|e| {
+            e.path()
+                .extension()
+                .map(|ext| ext == "parquet")
+                .unwrap_or(false)
+        });
         if has_parquet {
             return Ok(ShellFormat::Parquet);
         }
 
         // Check for directory of vortex files
-        let has_vortex = std::fs::read_dir(path)?
-            .filter_map(|e| e.ok())
-            .any(|e| {
-                e.path()
-                    .extension()
-                    .map(|ext| ext == "vortex")
-                    .unwrap_or(false)
-            });
+        let has_vortex = std::fs::read_dir(path)?.filter_map(|e| e.ok()).any(|e| {
+            e.path()
+                .extension()
+                .map(|ext| ext == "vortex")
+                .unwrap_or(false)
+        });
         if has_vortex {
             return Ok(ShellFormat::Vortex);
         }
     }
 
-    Err(ShellError::UnsupportedFormat(
-        path.display().to_string(),
-    ))
+    Err(ShellError::UnsupportedFormat(path.display().to_string()))
 }
 
 /// Interactive SQL shell.
@@ -117,8 +106,7 @@ impl Shell {
         let format = detect_format(path)?;
 
         // Create in-memory DuckDB connection with unsigned extensions allowed
-        let config = Config::default()
-            .allow_unsigned_extensions()?;
+        let config = Config::default().allow_unsigned_extensions()?;
         let conn = Connection::open_in_memory_with_flags(config)?;
 
         let tables = match format {
@@ -168,10 +156,7 @@ impl Shell {
 
         if path.is_file() {
             // Single parquet file
-            let table_name = path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("data");
+            let table_name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("data");
 
             let view_sql = format!(
                 "CREATE VIEW \"{}\" AS SELECT * FROM read_parquet('{}')",
@@ -185,7 +170,11 @@ impl Shell {
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
                 let file_path = entry.path();
-                if file_path.extension().map(|e| e == "parquet").unwrap_or(false) {
+                if file_path
+                    .extension()
+                    .map(|e| e == "parquet")
+                    .unwrap_or(false)
+                {
                     let table_name = file_path
                         .file_stem()
                         .and_then(|s| s.to_str())
@@ -228,10 +217,7 @@ impl Shell {
 
         if path.is_file() {
             // Single vortex file
-            let table_name = path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("data");
+            let table_name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("data");
 
             let view_sql = format!(
                 "CREATE VIEW \"{}\" AS SELECT * FROM read_vortex('{}')",
@@ -245,7 +231,11 @@ impl Shell {
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
                 let file_path = entry.path();
-                if file_path.extension().map(|e| e == "vortex").unwrap_or(false) {
+                if file_path
+                    .extension()
+                    .map(|e| e == "vortex")
+                    .unwrap_or(false)
+                {
                     let table_name = file_path
                         .file_stem()
                         .and_then(|s| s.to_str())
@@ -312,9 +302,8 @@ impl Shell {
                     if let Some(ext) = entry_path.extension() {
                         if ext == "lance" {
                             // Extract table name from directory name (without .lance extension)
-                            let Some(table_name) = entry_path
-                                .file_stem()
-                                .and_then(|s| s.to_str()) else {
+                            let Some(table_name) = entry_path.file_stem().and_then(|s| s.to_str())
+                            else {
                                 continue;
                             };
 
@@ -389,7 +378,7 @@ impl Shell {
     /// Returns true if the shell should exit.
     fn handle_meta_command(&self, cmd: &str) -> bool {
         let parts: Vec<&str> = cmd.split_whitespace().collect();
-        let cmd = parts.first().map(|s| *s).unwrap_or("");
+        let cmd = parts.first().copied().unwrap_or("");
 
         match cmd {
             "\\q" | "\\quit" => return true,
@@ -445,7 +434,13 @@ impl Shell {
         }
 
         // Calculate column widths
-        let max_name = self.tables.iter().map(|t| t.len()).max().unwrap_or(4).max(4);
+        let max_name = self
+            .tables
+            .iter()
+            .map(|t| t.len())
+            .max()
+            .unwrap_or(4)
+            .max(4);
 
         // Print header
         println!("        List of relations");
@@ -457,7 +452,11 @@ impl Shell {
             println!(" {:max_name$} | table ", table, max_name = max_name);
         }
 
-        println!("({} row{})", self.tables.len(), if self.tables.len() == 1 { "" } else { "s" });
+        println!(
+            "({} row{})",
+            self.tables.len(),
+            if self.tables.len() == 1 { "" } else { "s" }
+        );
     }
 
     /// List tables with sizes in psql format.
@@ -476,51 +475,78 @@ impl Shell {
         }
 
         // Calculate column widths
-        let max_name = rows.iter().map(|(n, _, _)| n.len()).max().unwrap_or(4).max(4);
-        let max_rows = rows.iter().map(|(_, r, _)| r.len()).max().unwrap_or(4).max(4);
-        let max_size = rows.iter().map(|(_, _, s)| s.len()).max().unwrap_or(4).max(4);
+        let max_name = rows
+            .iter()
+            .map(|(n, _, _)| n.len())
+            .max()
+            .unwrap_or(4)
+            .max(4);
+        let max_rows = rows
+            .iter()
+            .map(|(_, r, _)| r.len())
+            .max()
+            .unwrap_or(4)
+            .max(4);
+        let max_size = rows
+            .iter()
+            .map(|(_, _, s)| s.len())
+            .max()
+            .unwrap_or(4)
+            .max(4);
 
         // Print header
         println!("                    List of relations");
         println!(
             " {:^max_name$} | Type  | {:^max_rows$} | {:^max_size$} ",
-            "Name", "Rows", "Size",
-            max_name = max_name, max_rows = max_rows, max_size = max_size
+            "Name",
+            "Rows",
+            "Size",
+            max_name = max_name,
+            max_rows = max_rows,
+            max_size = max_size
         );
         println!(
             "-{}-+-------+-{}-+-{}-",
-            "-".repeat(max_name), "-".repeat(max_rows), "-".repeat(max_size)
+            "-".repeat(max_name),
+            "-".repeat(max_rows),
+            "-".repeat(max_size)
         );
 
         // Print rows
         for (name, row_count, size) in &rows {
             println!(
                 " {:max_name$} | table | {:>max_rows$} | {:>max_size$} ",
-                name, row_count, size,
-                max_name = max_name, max_rows = max_rows, max_size = max_size
+                name,
+                row_count,
+                size,
+                max_name = max_name,
+                max_rows = max_rows,
+                max_size = max_size
             );
         }
 
-        println!("({} row{})", self.tables.len(), if self.tables.len() == 1 { "" } else { "s" });
+        println!(
+            "({} row{})",
+            self.tables.len(),
+            if self.tables.len() == 1 { "" } else { "s" }
+        );
     }
 
     /// Get row count for a table.
     fn get_row_count(&self, table: &str) -> String {
         let query = format!("SELECT COUNT(*) FROM \"{}\"", table);
         match self.conn.prepare(&query) {
-            Ok(mut stmt) => {
-                match stmt.query_arrow([]) {
-                    Ok(result) => {
-                        let batches: Vec<arrow::array::RecordBatch> = result.collect();
-                        if !batches.is_empty() && batches[0].num_rows() > 0 {
-                            format_arrow_value(batches[0].column(0), 0)
-                        } else {
-                            "?".to_string()
-                        }
+            Ok(mut stmt) => match stmt.query_arrow([]) {
+                Ok(result) => {
+                    let batches: Vec<arrow::array::RecordBatch> = result.collect();
+                    if !batches.is_empty() && batches[0].num_rows() > 0 {
+                        format_arrow_value(batches[0].column(0), 0)
+                    } else {
+                        "?".to_string()
                     }
-                    Err(_) => "?".to_string(),
                 }
-            }
+                Err(_) => "?".to_string(),
+            },
             Err(_) => "?".to_string(),
         }
     }
@@ -653,7 +679,11 @@ impl Shell {
                             println!("{}", formatted.join("|"));
                         }
 
-                        println!("({} row{})", all_rows.len(), if all_rows.len() == 1 { "" } else { "s" });
+                        println!(
+                            "({} row{})",
+                            all_rows.len(),
+                            if all_rows.len() == 1 { "" } else { "s" }
+                        );
                     }
                     Err(e) => {
                         eprintln!("Query error: {}", e);
@@ -677,120 +707,132 @@ fn format_arrow_value(array: &arrow::array::ArrayRef, row: usize) -> String {
     }
 
     match array.data_type() {
-        DataType::Boolean => {
-            array.as_any().downcast_ref::<BooleanArray>()
-                .map(|a| if a.value(row) { "t" } else { "f" }.to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Int8 => {
-            array.as_any().downcast_ref::<Int8Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Int16 => {
-            array.as_any().downcast_ref::<Int16Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Int32 => {
-            array.as_any().downcast_ref::<Int32Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Int64 => {
-            array.as_any().downcast_ref::<Int64Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::UInt8 => {
-            array.as_any().downcast_ref::<UInt8Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::UInt16 => {
-            array.as_any().downcast_ref::<UInt16Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::UInt32 => {
-            array.as_any().downcast_ref::<UInt32Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::UInt64 => {
-            array.as_any().downcast_ref::<UInt64Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Float32 => {
-            array.as_any().downcast_ref::<Float32Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Float64 => {
-            array.as_any().downcast_ref::<Float64Array>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Utf8 => {
-            array.as_any().downcast_ref::<StringArray>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::LargeUtf8 => {
-            array.as_any().downcast_ref::<LargeStringArray>()
-                .map(|a| a.value(row).to_string())
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Binary => {
-            array.as_any().downcast_ref::<BinaryArray>()
-                .map(|a| {
-                    let bytes = a.value(row);
-                    if bytes.len() > 16 {
-                        format!("<{} bytes>", bytes.len())
-                    } else {
-                        format!("\\x{}", bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>())
-                    }
-                })
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::LargeBinary => {
-            array.as_any().downcast_ref::<LargeBinaryArray>()
-                .map(|a| format!("<{} bytes>", a.value(row).len()))
-                .unwrap_or_else(|| "?".to_string())
-        }
-        DataType::Timestamp(_unit, _) => {
-            array.as_any().downcast_ref::<TimestampNanosecondArray>()
-                .map(|a| {
-                    let nanos = a.value(row);
-                    let secs = nanos / 1_000_000_000;
-                    let nsec = (nanos % 1_000_000_000) as u32;
-                    format!("{}.{:09}", secs, nsec)
-                })
-                .or_else(|| {
-                    array.as_any().downcast_ref::<TimestampMicrosecondArray>()
-                        .map(|a| {
-                            let micros = a.value(row);
-                            let secs = micros / 1_000_000;
-                            let usec = (micros % 1_000_000) as u32;
-                            format!("{}.{:06}", secs, usec)
-                        })
-                })
-                .or_else(|| {
-                    array.as_any().downcast_ref::<TimestampMillisecondArray>()
-                        .map(|a| {
-                            let millis = a.value(row);
-                            let secs = millis / 1000;
-                            let msec = (millis % 1000) as u32;
-                            format!("{}.{:03}", secs, msec)
-                        })
-                })
-                .or_else(|| {
-                    array.as_any().downcast_ref::<TimestampSecondArray>()
-                        .map(|a| a.value(row).to_string())
-                })
-                .unwrap_or_else(|| "?".to_string())
-        }
+        DataType::Boolean => array
+            .as_any()
+            .downcast_ref::<BooleanArray>()
+            .map(|a| if a.value(row) { "t" } else { "f" }.to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Int8 => array
+            .as_any()
+            .downcast_ref::<Int8Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Int16 => array
+            .as_any()
+            .downcast_ref::<Int16Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Int32 => array
+            .as_any()
+            .downcast_ref::<Int32Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Int64 => array
+            .as_any()
+            .downcast_ref::<Int64Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::UInt8 => array
+            .as_any()
+            .downcast_ref::<UInt8Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::UInt16 => array
+            .as_any()
+            .downcast_ref::<UInt16Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::UInt32 => array
+            .as_any()
+            .downcast_ref::<UInt32Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::UInt64 => array
+            .as_any()
+            .downcast_ref::<UInt64Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Float32 => array
+            .as_any()
+            .downcast_ref::<Float32Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Float64 => array
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Utf8 => array
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::LargeUtf8 => array
+            .as_any()
+            .downcast_ref::<LargeStringArray>()
+            .map(|a| a.value(row).to_string())
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Binary => array
+            .as_any()
+            .downcast_ref::<BinaryArray>()
+            .map(|a| {
+                let bytes = a.value(row);
+                if bytes.len() > 16 {
+                    format!("<{} bytes>", bytes.len())
+                } else {
+                    format!(
+                        "\\x{}",
+                        bytes
+                            .iter()
+                            .map(|b| format!("{:02x}", b))
+                            .collect::<String>()
+                    )
+                }
+            })
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::LargeBinary => array
+            .as_any()
+            .downcast_ref::<LargeBinaryArray>()
+            .map(|a| format!("<{} bytes>", a.value(row).len()))
+            .unwrap_or_else(|| "?".to_string()),
+        DataType::Timestamp(_unit, _) => array
+            .as_any()
+            .downcast_ref::<TimestampNanosecondArray>()
+            .map(|a| {
+                let nanos = a.value(row);
+                let secs = nanos / 1_000_000_000;
+                let nsec = (nanos % 1_000_000_000) as u32;
+                format!("{}.{:09}", secs, nsec)
+            })
+            .or_else(|| {
+                array
+                    .as_any()
+                    .downcast_ref::<TimestampMicrosecondArray>()
+                    .map(|a| {
+                        let micros = a.value(row);
+                        let secs = micros / 1_000_000;
+                        let usec = (micros % 1_000_000) as u32;
+                        format!("{}.{:06}", secs, usec)
+                    })
+            })
+            .or_else(|| {
+                array
+                    .as_any()
+                    .downcast_ref::<TimestampMillisecondArray>()
+                    .map(|a| {
+                        let millis = a.value(row);
+                        let secs = millis / 1000;
+                        let msec = (millis % 1000) as u32;
+                        format!("{}.{:03}", secs, msec)
+                    })
+            })
+            .or_else(|| {
+                array
+                    .as_any()
+                    .downcast_ref::<TimestampSecondArray>()
+                    .map(|a| a.value(row).to_string())
+            })
+            .unwrap_or_else(|| "?".to_string()),
         DataType::List(_) | DataType::LargeList(_) | DataType::FixedSizeList(_, _) => {
             // For lists, show a compact representation
             "{...}".to_string()
@@ -799,9 +841,7 @@ fn format_arrow_value(array: &arrow::array::ArrayRef, row: usize) -> String {
             // For structs, show a compact representation
             "{...}".to_string()
         }
-        DataType::Map(_, _) => {
-            "{...}".to_string()
-        }
+        DataType::Map(_, _) => "{...}".to_string(),
         _ => format!("({})", array.data_type()),
     }
 }
@@ -816,15 +856,42 @@ fn extract_size_value(array: &arrow::array::ArrayRef) -> Option<u64> {
     }
 
     match array.data_type() {
-        DataType::Int8 => array.as_any().downcast_ref::<Int8Array>().map(|a| a.value(0) as u64),
-        DataType::Int16 => array.as_any().downcast_ref::<Int16Array>().map(|a| a.value(0) as u64),
-        DataType::Int32 => array.as_any().downcast_ref::<Int32Array>().map(|a| a.value(0) as u64),
-        DataType::Int64 => array.as_any().downcast_ref::<Int64Array>().map(|a| a.value(0) as u64),
-        DataType::UInt8 => array.as_any().downcast_ref::<UInt8Array>().map(|a| a.value(0) as u64),
-        DataType::UInt16 => array.as_any().downcast_ref::<UInt16Array>().map(|a| a.value(0) as u64),
-        DataType::UInt32 => array.as_any().downcast_ref::<UInt32Array>().map(|a| a.value(0) as u64),
-        DataType::UInt64 => array.as_any().downcast_ref::<UInt64Array>().map(|a| a.value(0)),
-        DataType::Decimal128(_, _) => array.as_any().downcast_ref::<Decimal128Array>().map(|a| a.value(0) as u64),
+        DataType::Int8 => array
+            .as_any()
+            .downcast_ref::<Int8Array>()
+            .map(|a| a.value(0) as u64),
+        DataType::Int16 => array
+            .as_any()
+            .downcast_ref::<Int16Array>()
+            .map(|a| a.value(0) as u64),
+        DataType::Int32 => array
+            .as_any()
+            .downcast_ref::<Int32Array>()
+            .map(|a| a.value(0) as u64),
+        DataType::Int64 => array
+            .as_any()
+            .downcast_ref::<Int64Array>()
+            .map(|a| a.value(0) as u64),
+        DataType::UInt8 => array
+            .as_any()
+            .downcast_ref::<UInt8Array>()
+            .map(|a| a.value(0) as u64),
+        DataType::UInt16 => array
+            .as_any()
+            .downcast_ref::<UInt16Array>()
+            .map(|a| a.value(0) as u64),
+        DataType::UInt32 => array
+            .as_any()
+            .downcast_ref::<UInt32Array>()
+            .map(|a| a.value(0) as u64),
+        DataType::UInt64 => array
+            .as_any()
+            .downcast_ref::<UInt64Array>()
+            .map(|a| a.value(0)),
+        DataType::Decimal128(_, _) => array
+            .as_any()
+            .downcast_ref::<Decimal128Array>()
+            .map(|a| a.value(0) as u64),
         _ => None,
     }
 }

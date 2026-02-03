@@ -73,7 +73,10 @@ pub struct RawMessage {
 impl RawMessage {
     /// Get the topic name for this message.
     pub fn topic<'a>(&self, reader: &'a StreamReader<impl Read>) -> Option<&'a str> {
-        reader.channels.get(&self.channel_id).map(|c| c.topic.as_str())
+        reader
+            .channels
+            .get(&self.channel_id)
+            .map(|c| c.topic.as_str())
     }
 }
 
@@ -527,7 +530,11 @@ mod tests {
             while let Ok(Some(_)) = reader.next_message() {}
 
             assert_eq!(reader.channels().len(), 2);
-            let topics: Vec<_> = reader.channels().values().map(|c| c.topic.as_str()).collect();
+            let topics: Vec<_> = reader
+                .channels()
+                .values()
+                .map(|c| c.topic.as_str())
+                .collect();
             assert!(topics.contains(&"/topic_a"));
             assert!(topics.contains(&"/topic_b"));
         }

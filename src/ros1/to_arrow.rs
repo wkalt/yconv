@@ -206,7 +206,9 @@ fn field_type_to_arrow_with_info(
                 data_type: DataType::List(Arc::new(inner_field)),
                 ros1_type: None,
                 // Propagate element type (either ros1_type for Struct elements, or ros1_element_type for nested lists)
-                ros1_element_type: element_result.ros1_type.or(element_result.ros1_element_type),
+                ros1_element_type: element_result
+                    .ros1_type
+                    .or(element_result.ros1_element_type),
                 is_empty_struct: false,
             })
         }
@@ -218,7 +220,9 @@ fn field_type_to_arrow_with_info(
                 data_type: DataType::FixedSizeList(Arc::new(inner_field), *length as i32),
                 ros1_type: None,
                 // Propagate element type
-                ros1_element_type: element_result.ros1_type.or(element_result.ros1_element_type),
+                ros1_element_type: element_result
+                    .ros1_type
+                    .or(element_result.ros1_element_type),
                 is_empty_struct: false,
             })
         }
@@ -252,9 +256,16 @@ fn field_type_to_arrow_with_info(
 fn should_enable_compression(dt: &DataType) -> bool {
     match dt {
         // Numeric types benefit from compression
-        DataType::Float32 | DataType::Float64 |
-        DataType::Int8 | DataType::Int16 | DataType::Int32 | DataType::Int64 |
-        DataType::UInt8 | DataType::UInt16 | DataType::UInt32 | DataType::UInt64 => true,
+        DataType::Float32
+        | DataType::Float64
+        | DataType::Int8
+        | DataType::Int16
+        | DataType::Int32
+        | DataType::Int64
+        | DataType::UInt8
+        | DataType::UInt16
+        | DataType::UInt32
+        | DataType::UInt64 => true,
 
         // Timestamps and durations
         DataType::Timestamp(_, _) | DataType::Duration(_) => true,

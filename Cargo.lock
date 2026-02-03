@@ -2842,8 +2842,9 @@ checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
 
 [[package]]
 name = "fsst"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ffdff7a2d68d22afc0657eddde3e946371ce7cfe730a3f78a5ed44ea5b1cb2e"
 dependencies = [
  "arrow-array",
  "rand 0.9.2",
@@ -3913,8 +3914,9 @@ dependencies = [
 
 [[package]]
 name = "lance"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8c439decbc304e180748e34bb6d3df729069a222e83e74e2185c38f107136e9"
 dependencies = [
  "arrow",
  "arrow-arith",
@@ -3979,14 +3981,14 @@ dependencies = [
 
 [[package]]
 name = "lance-arrow"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4ee5508b225456d3d56998eaeef0d8fbce5ea93856df47b12a94d2e74153210"
 dependencies = [
  "arrow-array",
  "arrow-buffer",
  "arrow-cast",
  "arrow-data",
- "arrow-ord",
  "arrow-schema",
  "arrow-select",
  "bytes",
@@ -3999,8 +4001,9 @@ dependencies = [
 
 [[package]]
 name = "lance-bitpacking"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1c065fb3bd4a8cc4f78428443e990d4921aa08f707b676753db740e0b402a21"
 dependencies = [
  "arrayref",
  "paste",
@@ -4009,8 +4012,9 @@ dependencies = [
 
 [[package]]
 name = "lance-core"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8856abad92e624b75cd57a04703f6441948a239463bdf973f2ac1924b0bcdbe"
 dependencies = [
  "arrow-array",
  "arrow-buffer",
@@ -4023,7 +4027,6 @@ dependencies = [
  "datafusion-sql",
  "deepsize",
  "futures",
- "itertools 0.13.0",
  "lance-arrow",
  "libc",
  "log",
@@ -4047,8 +4050,9 @@ dependencies = [
 
 [[package]]
 name = "lance-datafusion"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c8835308044cef5467d7751be87fcbefc2db01c22370726a8704bd62991693f"
 dependencies = [
  "arrow",
  "arrow-array",
@@ -4078,8 +4082,9 @@ dependencies = [
 
 [[package]]
 name = "lance-datagen"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "612de1e888bb36f6bf51196a6eb9574587fdf256b1759a4c50e643e00d5f96d0"
 dependencies = [
  "arrow",
  "arrow-array",
@@ -4090,15 +4095,15 @@ dependencies = [
  "half",
  "hex",
  "rand 0.9.2",
- "rand_distr 0.5.1",
  "rand_xoshiro 0.7.0",
  "random_word",
 ]
 
 [[package]]
 name = "lance-encoding"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b456b29b135d3c7192602e516ccade38b5483986e121895fa43cf1fdb38bf60"
 dependencies = [
  "arrow-arith",
  "arrow-array",
@@ -4135,8 +4140,9 @@ dependencies = [
 
 [[package]]
 name = "lance-file"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab1538d14d5bb3735b4222b3f5aff83cfa59cc6ef7cdd3dd9139e4c77193c80b"
 dependencies = [
  "arrow-arith",
  "arrow-array",
@@ -4168,8 +4174,9 @@ dependencies = [
 
 [[package]]
 name = "lance-geo"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5a69a2f3b55703d9c240ad7c5ffa2c755db69e9cf8aa05efe274a212910472d"
 dependencies = [
  "datafusion",
  "geo-types",
@@ -4180,8 +4187,9 @@ dependencies = [
 
 [[package]]
 name = "lance-index"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ea84613df6fa6b9168a1f056ba4f9cb73b90a1b452814c6fd4b3529bcdbfc78"
 dependencies = [
  "arrow",
  "arrow-arith",
@@ -4227,7 +4235,6 @@ dependencies = [
  "prost-types 0.13.5",
  "rand 0.9.2",
  "rand_distr 0.5.1",
- "rangemap",
  "rayon",
  "roaring",
  "serde",
@@ -4243,8 +4250,9 @@ dependencies = [
 
 [[package]]
 name = "lance-io"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b3fc4c1d941fceef40a0edbd664dbef108acfc5d559bb9e7f588d0c733cbc35"
 dependencies = [
  "arrow",
  "arrow-arith",
@@ -4284,8 +4292,9 @@ dependencies = [
 
 [[package]]
 name = "lance-linalg"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b62ffbc5ce367fbf700a69de3fe0612ee1a11191a64a632888610b6bacfa0f63"
 dependencies = [
  "arrow-array",
  "arrow-buffer",
@@ -4301,8 +4310,9 @@ dependencies = [
 
 [[package]]
 name = "lance-namespace"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "791bbcd868ee758123a34e07d320a1fb99379432b5ecc0e78d6b4686e999b629"
 dependencies = [
  "arrow",
  "async-trait",
@@ -4314,15 +4324,15 @@ dependencies = [
 
 [[package]]
 name = "lance-namespace-impls"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee713505576f6b1988a491f77c7ca8b0cf7090a393598e63c85079fa70a53ebf"
 dependencies = [
  "arrow",
  "arrow-ipc",
  "arrow-schema",
  "async-trait",
  "bytes",
- "chrono",
  "futures",
  "lance",
  "lance-core",
@@ -4340,9 +4350,9 @@ dependencies = [
 
 [[package]]
 name = "lance-namespace-reqwest-client"
-version = "0.4.0"
+version = "0.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dfe76b82f4167fa1c19d5d8825f8fb7d3831e83fa6e0485b3dd59ef0f7b1685"
+checksum = "3ea349999bcda4eea53fc05d334b3775ec314761e6a706555c777d7a29b18d19"
 dependencies = [
  "reqwest",
  "serde",
@@ -4353,8 +4363,9 @@ dependencies = [
 
 [[package]]
 name = "lance-table"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fdb2d56bfa4d1511c765fa0cc00fdaa37e5d2d1cd2f57b3c6355d9072177052"
 dependencies = [
  "arrow",
  "arrow-array",
@@ -4393,8 +4404,9 @@ dependencies = [
 
 [[package]]
 name = "lance-testing"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8ccb1a4a9284435c6a8c02c8c06e7e041bece0d7f722152159353cf55dc51e3"
 dependencies = [
  "arrow-array",
  "arrow-schema",
@@ -4405,8 +4417,9 @@ dependencies = [
 
 [[package]]
 name = "lancedb"
-version = "0.23.1-beta.1"
-source = "git+https://github.com/wkalt/lancedb.git?branch=wkalt%2Flance-update-nomerge#195fbea7709729c7d6641a6c02ca3ad6a2c2c802"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9217d7d3a1f4e088bdedaad9b4fa79045b077e07f961f1cd3ec6f90850c425f2"
 dependencies = [
  "ahash 0.8.12",
  "arrow",
@@ -9193,143 +9206,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "lance"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-arrow"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-core"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-datafusion"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-datagen"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-encoding"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-file"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-index"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-io"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-linalg"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-namespace"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-namespace-impls"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-table"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-testing"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-arrow"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-core"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-datafusion"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-datagen"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-encoding"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-file"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-index"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-io"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-linalg"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-namespace"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-namespace-impls"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-table"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"
-
-[[patch.unused]]
-name = "lance-testing"
-version = "2.0.0-beta.4"
-source = "git+https://github.com/wkalt/lance.git?branch=task%2Fcomplex-fsl#23ba0115ac2e3bfb21ec216e7a0a395d7ae902ef"

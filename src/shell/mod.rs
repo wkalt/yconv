@@ -2,12 +2,44 @@
 //!
 //! Provides a unified SQL interface to various data formats using DuckDB as the query engine.
 
+use std::io::Cursor;
 use std::path::Path;
 
 use duckdb::{Config, Connection};
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use thiserror::Error;
+
+/// Convert duckdb's arrow RecordBatches (arrow 56) to arrow 57 RecordBatches via IPC.
+fn convert_duckdb_batches(
+    duckdb_batches: impl Iterator<Item = duckdb::arrow::array::RecordBatch>,
+) -> Vec<arrow::array::RecordBatch> {
+    let duckdb_batches: Vec<_> = duckdb_batches.collect();
+    if duckdb_batches.is_empty() {
+        return vec![];
+    }
+
+    let schema = duckdb_batches[0].schema();
+    let mut buf = Vec::new();
+    let Ok(mut writer) =
+        duckdb_arrow_ipc::writer::StreamWriter::try_new(&mut buf, &schema)
+    else {
+        return vec![];
+    };
+    for batch in &duckdb_batches {
+        if writer.write(batch).is_err() {
+            return vec![];
+        }
+    }
+    if writer.finish().is_err() {
+        return vec![];
+    }
+
+    let Ok(reader) = arrow::ipc::reader::StreamReader::try_new(Cursor::new(buf), None) else {
+        return vec![];
+    };
+    reader.into_iter().filter_map(|r| r.ok()).collect()
+}
 
 /// Errors that can occur during shell operations.
 #[derive(Debug, Error)]
@@ -538,7 +570,7 @@ impl Shell {
         match self.conn.prepare(&query) {
             Ok(mut stmt) => match stmt.query_arrow([]) {
                 Ok(result) => {
-                    let batches: Vec<arrow::array::RecordBatch> = result.collect();
+                    let batches = convert_duckdb_batches(result);
                     if !batches.is_empty() && batches[0].num_rows() > 0 {
                         format_arrow_value(batches[0].column(0), 0)
                     } else {
@@ -563,7 +595,7 @@ impl Shell {
             Ok(mut stmt) => {
                 match stmt.query_arrow([]) {
                     Ok(result) => {
-                        let batches: Vec<arrow::array::RecordBatch> = result.collect();
+                        let batches = convert_duckdb_batches(result);
                         if !batches.is_empty() && batches[0].num_rows() > 0 {
                             let col = batches[0].column(0);
                             if !col.is_null(0) {
@@ -620,7 +652,7 @@ impl Shell {
             Ok(mut stmt) => {
                 match stmt.query_arrow([]) {
                     Ok(arrow_result) => {
-                        let batches: Vec<arrow::array::RecordBatch> = arrow_result.collect();
+                        let batches = convert_duckdb_batches(arrow_result);
 
                         if batches.is_empty() {
                             println!("(0 rows)");

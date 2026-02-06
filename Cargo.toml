@@ -4,14 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-arrow = "56"
+arrow = "57"
 clap = { version = "4", features = ["derive"] }
 duckdb = { version = "1.2", features = ["bundled", "appender-arrow"] }
+duckdb-arrow-ipc = { package = "arrow-ipc", version = "56" }
 futures = "0.3"
-lancedb = "0.23"
+lancedb = { git = "https://github.com/lancedb/lancedb.git" }
 mcap = "0.24"
-object_store = { version = "0.11", features = ["aws"] }
-parquet = { version = "56", features = ["zstd", "object_store"] }
+object_store = { version = "0.12", features = ["aws"] }
+parquet = { version = "57", features = ["zstd", "object_store"] }
 prost = "0.13"
 prost-reflect = "0.15"
 prost-types = "0.13"
@@ -19,13 +20,12 @@ rustyline = "15"
 thiserror = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 url = "2"
-vortex = "0.56"
-vortex-file = "0.56"
-vortex-io = "0.56"
+vortex = "0.58"
+vortex-file = "0.58"
+vortex-io = "0.58"
 
 [dev-dependencies]
 tempfile = "3"
 
 [profile.release]
 debug = true
-

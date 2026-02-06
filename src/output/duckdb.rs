@@ -2,6 +2,7 @@
 //!
 //! Creates a DuckDB database file with one table per topic.
 
+use std::io::Cursor;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -10,6 +11,33 @@ use arrow::datatypes::Schema;
 use duckdb::Connection;
 
 use super::{OutputDatabase, OutputError, TopicWriter};
+
+/// Convert an arrow 57 RecordBatch to duckdb's arrow 56 RecordBatch via IPC.
+fn convert_to_duckdb_batch(
+    batch: &RecordBatch,
+) -> Result<duckdb::arrow::array::RecordBatch, OutputError> {
+    let mut buf = Vec::new();
+    {
+        let mut writer =
+            arrow::ipc::writer::StreamWriter::try_new(&mut buf, &batch.schema())
+                .map_err(|e| OutputError::DuckDb(format!("IPC write error: {}", e)))?;
+        writer
+            .write(batch)
+            .map_err(|e| OutputError::DuckDb(format!("IPC write error: {}", e)))?;
+        writer
+            .finish()
+            .map_err(|e| OutputError::DuckDb(format!("IPC write error: {}", e)))?;
+    }
+
+    let reader =
+        duckdb_arrow_ipc::reader::StreamReader::try_new(Cursor::new(buf), None)
+            .map_err(|e| OutputError::DuckDb(format!("IPC read error: {}", e)))?;
+    reader
+        .into_iter()
+        .next()
+        .ok_or_else(|| OutputError::DuckDb("No batch in IPC stream".to_string()))?
+        .map_err(|e| OutputError::DuckDb(format!("IPC read error: {}", e)))
+}
 
 /// DuckDB output database.
 pub struct DuckDbOutput {
@@ -107,8 +135,9 @@ impl DuckDbTopicWriter {
             .appender(&self.table_name)
             .map_err(|e| OutputError::DuckDb(format!("Failed to create appender: {}", e)))?;
 
+        let duckdb_batch = convert_to_duckdb_batch(batch)?;
         appender
-            .append_record_batch(batch.clone())
+            .append_record_batch(duckdb_batch)
             .map_err(|e| OutputError::DuckDb(format!("Failed to append batch: {}", e)))?;
 
         Ok(())

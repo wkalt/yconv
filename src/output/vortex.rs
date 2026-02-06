@@ -10,9 +10,9 @@ use std::thread::{self, JoinHandle};
 
 use arrow::array::{Array, AsArray, RecordBatch};
 use arrow::datatypes::{DataType, Field, Int64Type, Schema};
-use vortex::arrow::FromArrowArray;
+use vortex::array::arrow::FromArrowArray;
+use vortex::array::ArrayRef;
 use vortex::session::VortexSession;
-use vortex::ArrayRef;
 use vortex::VortexSessionDefault;
 use vortex_file::VortexWriteOptions;
 use vortex_io::runtime::single::SingleThreadRuntime;

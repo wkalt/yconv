@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use arrow::array::RecordBatch;
 use arrow::datatypes::Schema;
-use vortex::arrow::IntoArrowArray;
+use vortex::array::arrow::IntoArrowArray;
 use vortex::session::VortexSession;
 use vortex::VortexSessionDefault;
 use vortex_file::OpenOptionsSessionExt;

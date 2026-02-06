@@ -2,6 +2,7 @@
 //!
 //! Reads tables from a DuckDB database file.
 
+use std::io::Cursor;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -10,6 +11,39 @@ use arrow::datatypes::Schema;
 use duckdb::Connection;
 
 use super::{InputDatabase, InputError, TableReader};
+
+/// Convert duckdb's arrow RecordBatches (arrow 56) to our arrow 57 RecordBatches via IPC.
+fn convert_duckdb_batches(
+    duckdb_batches: impl Iterator<Item = duckdb::arrow::array::RecordBatch>,
+) -> Result<Vec<RecordBatch>, InputError> {
+    let duckdb_batches: Vec<_> = duckdb_batches.collect();
+    if duckdb_batches.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let schema = duckdb_batches[0].schema();
+    let mut buf = Vec::new();
+    {
+        let mut writer =
+            duckdb_arrow_ipc::writer::StreamWriter::try_new(&mut buf, &schema)
+                .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
+        for batch in &duckdb_batches {
+            writer
+                .write(batch)
+                .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
+        }
+        writer
+            .finish()
+            .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
+    }
+
+    let reader = arrow::ipc::reader::StreamReader::try_new(Cursor::new(buf), None)
+        .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
+    reader
+        .into_iter()
+        .map(|r| r.map_err(|e| InputError::Io(std::io::Error::other(e))))
+        .collect()
+}
 
 /// DuckDB input database.
 pub struct DuckDbInput {
@@ -57,8 +91,8 @@ impl InputDatabase for DuckDbInput {
             .query_arrow([])
             .map_err(|e| InputError::Io(std::io::Error::other(e)))?;
 
-        // Collect all batches (DuckDB streams them)
-        let batches: Vec<RecordBatch> = arrow_result.collect();
+        // Collect all batches (DuckDB streams them), converting from duckdb's arrow to ours
+        let batches: Vec<RecordBatch> = convert_duckdb_batches(arrow_result)?;
 
         if batches.is_empty() {
             return Err(InputError::TableNotFound(name.to_string()));

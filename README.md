@@ -1,18 +1,34 @@
 # yconv
 
-Universal format conversion tool for robotics data. Convert MCAP files to columnar formats for fast analytics.
+Convert MCAP robotics recordings into queryable columnar formats. Go from raw sensor data to SQL in one command.
+
+Robotics systems produce MCAP files — timestamped streams of lidar scans, camera frames, IMU readings, CAN bus messages, and more. Analyzing this data typically means writing one-off scripts or reaching for format-specific tools. yconv bridges the gap: it converts MCAP files into Parquet, LanceDB, Vortex, or DuckDB, and lets you query them with SQL immediately.
+
+Message schemas are handled dynamically — no code generation required. yconv reads ROS1, Protobuf, and CDR (ROS2/DDS) message definitions at runtime and builds Arrow-based transcoders on the fly.
 
 ## Install
 
 ```bash
-cargo build --release
+cargo install --path .
+```
+
+## Quick Start
+
+Convert an MCAP file and drop into a SQL shell:
+
+```bash
+yconv convert recording.mcap -o recording.parquet --shell
+```
+
+```sql
+sql> SELECT * FROM "/imu/data" WHERE angular_velocity_x > 0.5 LIMIT 10;
 ```
 
 ## Usage
 
 ### Convert
 
-Convert MCAP to Parquet, LanceDB, Vortex, or DuckDB:
+Convert MCAP to any supported columnar format. The output format is inferred from the file extension:
 
 ```bash
 yconv convert testdata/demo.mcap -o output.parquet
@@ -36,45 +52,35 @@ Messages per topic:
   /velodyne_points: 78
 ```
 
-Open an interactive SQL shell after conversion:
+Multiple input files are supported:
 
 ```bash
-yconv convert data.mcap -o data.lance --shell
+yconv convert run1.mcap run2.mcap run3.mcap -o combined.parquet
 ```
 
-#### Reverse conversion (experimental)
+Write directly to cloud storage with LanceDB:
 
-yconv can also go the other direction, converting tables to an MCAP data
-stream, to emulate a playback usecase. This still has some gaps: although
-streams are merged on log time, ordering of the underlying scans is not
-guaranteed so messages may be out of order. Secondly, there is no filtering on
-time or topic supported yet.
-
+```bash
+yconv convert recording.mcap -o s3://my-bucket/data.lance
+yconv convert recording.mcap -o gs://my-bucket/data.lance
+yconv convert recording.mcap -o az://my-container/data.lance
 ```
-[~/projects/yconv] (master) $ ./target/release/yconv convert testdata/demo.mcap --output-format lancedb -o demo
-[1/1] Converting testdata/demo.mcap (ros1 encoding) to demo...
 
-Conversion complete:
-  Files processed: 1
-  Total messages: 1606
-  Tables created: 7
+### Shell
 
-Messages per topic:
-  /diagnostics: 52
-  /image_color/compressed: 234
-  /radar/points: 156
-  /radar/range: 156
-  /radar/tracks: 156
-  /tf: 774
-  /velodyne_points: 78
-[~/projects/yconv] (master) $ ./target/release/yconv convert demo --output-format mcap --stdout | mcap cat --json | head -n 1
-{"topic":"/diagnostics","sequence":0,"log_time":1490149580.103843113,"publish_time":1490149580.103843113,"data":{"header":{"seq":2602,"stamp":1490149580.113375843,"frame_id":""},"status":[{"level":0,"name":"velodyne_nodelet_manager: velodyne_packets topic status","message":"Desired frequency met; Timestamps are reasonable.","hardware_id":"Velodyne HDL-32E","values":[{"key":"Events in window","value":"100"},{"key":"Events since startup","value":"26020"},{"key":"Duration of window (s)","value":"10.008710"},{"key":"Actual frequency (Hz)","value":"9.991298"},{"key":"Target frequency (Hz)","value":"9.988950"},{"key":"Minimum acceptable frequency (Hz)","value":"8.990055"},{"key":"Maximum acceptable frequency (Hz)","value":"10.987845"},{"key":"Earliest timestamp delay:","value":"0.000300"},{"key":"Latest timestamp delay:","value":"0.000322"},{"key":"Earliest acceptable timestamp delay:","value":"-1.000000"},{"key":"Latest acceptable timestamp delay:","value":"5.000000"},{"key":"Late diagnostic update count:","value":"0"},{"key":"Early diagnostic update count:","value":"0"},{"key":"Zero seen diagnostic update count:","value":"0"}]}]}}
-[~/projects/yconv] (master) $
+Open an interactive SQL shell on any supported format:
+
+```bash
+yconv shell recording.parquet
+yconv shell recording.lance
+yconv shell recording.duckdb
 ```
+
+The shell uses DuckDB as its query engine. Each MCAP topic becomes a table, named by its topic path.
 
 ### Analyze
 
-Compare compression and conversion speed across formats:
+Compare how different columnar formats handle your data. This is useful for identifying schemas that compress poorly in a given format:
 
 ```bash
 yconv analyze data.mcap --clean
@@ -138,37 +144,46 @@ Output written to: data_analysis
 Output directory cleaned up.
 ```
 
-Topics that fail conversion for a specific format show `FAILED` in that column.
+Topics that fail conversion for a specific format show `FAILED` in that column. The `--clean` flag removes the output directory after printing results.
 
-Note: timing measurements are likely reflective of optimization work in the transcoder, not the formats.
+### Reverse Conversion (experimental)
+
+yconv can also convert columnar tables back to an MCAP stream, to emulate playback:
+
+```bash
+yconv convert demo.lance --output-format mcap --stdout | mcap cat --json | head -n 1
+```
+
+This is still experimental — streams are merged on log time, but message ordering within scans is not guaranteed, and there is no filtering on time or topic yet.
 
 ## Supported Formats
 
-| Format  | Input | Output | Cloud |
-|---------|-------|--------|-------|
-| MCAP    | Yes   | Yes    | -     |
-| Parquet | Yes   | Yes    | -     |
-| LanceDB | Yes   | Yes    | S3, GCS, Azure |
-| Vortex  | Yes   | Yes    | -     |
-| DuckDB  | Yes   | Yes    | -     |
+| Format  | Input | Output | Cloud Storage      |
+|---------|-------|--------|--------------------|
+| MCAP    | Yes   | Yes    | -                  |
+| Parquet | Yes   | Yes    | -                  |
+| LanceDB | Yes   | Yes    | S3, GCS, Azure    |
+| Vortex  | Yes   | Yes    | -                  |
+| DuckDB  | Yes   | Yes    | -                  |
 
 ## Message Encodings
 
-- ROS1
-- Protobuf
-- CDR (ROS2/DDS -- has bugs)
+| Encoding          | Status |
+|-------------------|--------|
+| ROS1              | Stable |
+| Protobuf          | Stable |
+| CDR (ROS2/DDS)    | Has bugs |
 
+All encodings are handled dynamically via schema reflection — no pre-compiled message definitions needed.
 
-## Tips and tricks
-The main purpose of this tool currently is analyzing compression differences
-between different formats. Typically these differences are due to a schema that
-is handled poorly. To identify the schema of poorly-performing topics, the
-end-to-end process looks like this:
+## Diagnosing Compression Issues
 
-First, perform the analysis:
+The `analyze` command is particularly useful for finding schemas that a format handles poorly. Here's a typical workflow:
+
+First, run the analysis:
 
 ```
-[/mnt/nvme/projects/yconv] (master) $ ./target/release/yconv analyze testdata/demo.mcap
+$ yconv analyze testdata/demo.mcap
 Analyzing: testdata/demo.mcap (58.7 MB)
 
 Converting to Parquet, Vortex, and LanceDB in parallel...
@@ -196,101 +211,41 @@ Compression Ratios (vs MCAP 58.7 MB):
 Output written to: demo_analysis
 ```
 
-Next, identify which topics are doing poorly. In this case there is clearly a
-difference between how Vortex and LanceDB are handling the `/tf` topic. Use the
-MCAP CLI tool to understand what that is:
+Identify which topics are doing poorly. Here, `/velodyne_points` is nearly 3x larger in Vortex and LanceDB, while `/tf` shows a split — Vortex actually compresses it better (0.68x) but LanceDB makes it nearly 2x larger. Use the MCAP CLI to inspect the schema:
 
 ```
-[/mnt/nvme/projects/yconv] (master) $ mcap info testdata/demo.mcap 
-library:   mcap go v0.4.0                                              
-profile:   ros1                                                        
-messages:  1606                                                        
-duration:  7.780758504s                                                
-start:     2017-03-21T19:26:20.103843113-07:00 (1490149580.103843113)  
-end:       2017-03-21T19:26:27.884601617-07:00 (1490149587.884601617)  
+$ mcap info testdata/demo.mcap
+library:   mcap go v0.4.0
+profile:   ros1
+messages:  1606
+duration:  7.780758504s
+start:     2017-03-21T19:26:20.103843113-07:00 (1490149580.103843113)
+end:       2017-03-21T19:26:27.884601617-07:00 (1490149587.884601617)
 compression:
-        zstd: [314/314 chunks] [119.10 MiB/58.57 MiB (50.82%)] [7.53 MiB/sec] 
-chunks:
-        max uncompressed size: 1.23 MiB
-        max compressed size: 462.02 KiB
-        overlaps: [max concurrent: 2, decompressed: 1.33 MiB]
+        zstd: [314/314 chunks] [119.10 MiB/58.57 MiB (50.82%)] [7.53 MiB/sec]
 channels:
-        (0) /diagnostics              52 msgs (6.6..6.7Hz)     : diagnostic_msgs/DiagnosticArray [ros1msg]  
-        (1) /image_color/compressed  234 msgs (29.9..30.1Hz)   : sensor_msgs/CompressedImage [ros1msg]      
-        (2) /tf                      774 msgs (99.3..99.5Hz)   : tf2_msgs/TFMessage [ros1msg]               
-        (3) /radar/points            156 msgs (19.9..20.0Hz)   : sensor_msgs/PointCloud2 [ros1msg]          
-        (4) /radar/range             156 msgs (19.9..20.0Hz)   : sensor_msgs/Range [ros1msg]                
-        (5) /radar/tracks            156 msgs (19.9..20.0Hz)   : radar_driver/RadarTracks [ros1msg]         
-        (6) /velodyne_points          78 msgs (9.9..10.0Hz)    : sensor_msgs/PointCloud2 [ros1msg]          
-channels: 7
-attachments: 0
-metadata: 0
+        (0) /diagnostics              52 msgs (6.6..6.7Hz)     : diagnostic_msgs/DiagnosticArray [ros1msg]
+        (1) /image_color/compressed  234 msgs (29.9..30.1Hz)   : sensor_msgs/CompressedImage [ros1msg]
+        (2) /tf                      774 msgs (99.3..99.5Hz)   : tf2_msgs/TFMessage [ros1msg]
+        (3) /radar/points            156 msgs (19.9..20.0Hz)   : sensor_msgs/PointCloud2 [ros1msg]
+        (4) /radar/range             156 msgs (19.9..20.0Hz)   : sensor_msgs/Range [ros1msg]
+        (5) /radar/tracks            156 msgs (19.9..20.0Hz)   : radar_driver/RadarTracks [ros1msg]
+        (6) /velodyne_points          78 msgs (9.9..10.0Hz)    : sensor_msgs/PointCloud2 [ros1msg]
 ```
 
-Look at the definition of the tf2_msgs/TFMessage schema:
+Then inspect the schema definition with `mcap list schemas` to understand why a particular message type isn't compressing well in a given format. This often reveals issues like large binary blobs in `PointCloud2` data fields, or nested repeated messages that columnar formats handle differently.
+
+## Architecture
+
+yconv is built around two traits:
+
+- **`RowSource`** — reads rows from any supported format
+- **`RowSink`** — writes rows to any supported format
+
+All conversions flow through Apache Arrow record batches. Adding a new format means implementing one or both traits. The conversion pipeline is:
 
 ```
-mcap list schemas demo.mcap
-...
-3       tf2_msgs/TFMessage              ros1msg         geometry_msgs/TransformStamped[] transforms                                              
-                                                                                                                                                  
-                                                        ================================================================================         
-                                                        MSG: geometry_msgs/TransformStamped                                                       
-                                                        # This expresses a transform from coordinate frame header.frame_id                       
-                                                        # to the coordinate frame child_frame_id                                                 
-                                                        #                                                                                         
-                                                        # This message is mostly used by the                                                      
-                                                        # <a href="http://www.ros.org/wiki/tf">tf</a> package.                                    
-                                                        # See its documentation for more information.                                             
-                                                                                                                                                  
-                                                        Header header                                                                            
-                                                        string child_frame_id # the frame id of the child frame                                  
-                                                        Transform transform                                                                      
-                                                                                                                                                  
-                                                        ================================================================================          
-                                                        MSG: std_msgs/Header                                                                      
-                                                        # Standard metadata for higher-level stamped data types.                                  
-                                                        # This is generally used to communicate timestamped data                                  
-                                                        # in a particular coordinate frame.                                                       
-                                                        #                                                                                         
-                                                        # sequence ID: consecutively increasing ID                                                
-                                                        uint32 seq                                                                               
-                                                        #Two-integer timestamp that is expressed as:                                              
-                                                        # * stamp.sec: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')
-                                                        # * stamp.nsec: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')  
-                                                        # time-handling sugar is provided by the client library                                   
-                                                        time stamp                                                                                
-                                                        #Frame this data is associated with                                                       
-                                                        # 0: no frame                                                                             
-                                                        # 1: global frame                                                                         
-                                                        string frame_id                                                                          
-                                                                                                                                                 
-                                                        ================================================================================         
-                                                        MSG: geometry_msgs/Transform                                                              
-                                                        # This represents the transform between two coordinate frames in free space.              
-                                                                                                                                                  
-                                                        Vector3 translation                                                                       
-                                                        Quaternion rotation                                                                       
-                                                                                                                                                  
-                                                        ================================================================================         
-                                                        MSG: geometry_msgs/Vector3                                                                
-                                                        # This represents a vector in free space.                                                 
-                                                        # It is only meant to represent a direction. Therefore, it does not                       
-                                                        # make sense to apply a translation to it (e.g., when applying a                          
-                                                        # generic rigid transformation to a Vector3, tf2 will only apply the                      
-                                                        # rotation). If you want your data to be translatable too, use the                        
-                                                        # geometry_msgs/Point message instead.                                                    
-                                                                                                                                                  
-                                                        float64 x                                                                                 
-                                                        float64 y                                                                                 
-                                                        float64 z                                                                                 
-                                                        ================================================================================          
-                                                        MSG: geometry_msgs/Quaternion                                                            
-                                                        # This represents an orientation in free space in quaternion form.                       
-                                                                                                                                                 
-                                                        float64 x                                                                                 
-                                                        float64 y                                                                                 
-                                                        float64 z                                                                                
-                                                        float64 w
-...
+MCAP / Parquet / Lance / Vortex / DuckDB
+    → RowSource → Arrow RecordBatch → RowSink →
+                  MCAP / Parquet / Lance / Vortex / DuckDB
 ```
